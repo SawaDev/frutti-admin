@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8801/api/";
+const BASE_URL = "https://frutti-admin-api.onrender.com/api/";
 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
 const token = currentUser?.accessToken
