@@ -75,9 +75,6 @@ const NewSale = () => {
     }));
   };
 
-  const BOT_TOKEN = '5597880633:AAG3TBZnYf2qii1LMwfSMay8ETXNm3CsZC0';
-  const MESSAGE = "Salom";
-
   const handleSave = async () => {
     try {
       const productsToAdd = Object.entries(newQuantities).map(

@@ -103,8 +103,8 @@ export const newCollection = async (req, res, next) => {
 
 export const getSales = async (req, res, next) => {
   try {
-    const someday = new Date();
-    const finalDate = req?.query?.date ? req.query.date : someday.toISOString().slice(0, 10)
+    const finalDate = req?.query?.date
+    const clientId = req?.query?.clientId
 
     const sales = await Sale.aggregate([
       {
@@ -119,9 +119,28 @@ export const getSales = async (req, res, next) => {
       },
       {
         $match: {
-          createdAtDate: { $gte: finalDate },
-          clientId: { $exists: true }
-        }
+          $and: [
+            {
+              $expr: {
+                $cond: {
+                  if: { $eq: [finalDate, undefined] },
+                  then: true,
+                  else: { $eq: ["$createdAtDate", finalDate] }
+                }
+              }
+            },
+            {
+              $expr: {
+                $cond: {
+                  if: { $eq: [clientId, undefined] },
+                  then: true,
+                  else: { $eq: ['$clientId', new mongoose.Types.ObjectId(clientId)] }
+                }
+              }
+            },
+            { clientId: { $exists: true } }
+          ]
+        },
       },
       {
         $unwind: "$products"

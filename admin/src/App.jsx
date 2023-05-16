@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, HashRouter } from "react-router-dom";
 
 import './App.css'
 import Home from './pages/Home';
@@ -16,7 +16,7 @@ function App() {
   const user = JSON.parse(localStorage.getItem("currentUser"));
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       {user ? (
         <Routes>
           <Route path="/" exact element={<Home />} />
@@ -37,7 +37,7 @@ function App() {
           <Route path="/*" element={<Navigate to="/login" />} />
         </Routes>
       )}
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
