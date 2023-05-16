@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useState } from "react";
 import { Form, InputNumber, Input, Popconfirm, Table, Typography } from 'antd';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 import Navbar from "../components/Navbar"
 import { publicRequest, userRequest } from "../utils/requestMethods"
@@ -280,7 +280,9 @@ const List = () => {
           <p className='font-semibold text-2xl capitalize'>
             {path}
           </p>
-          <a href={`/${path}/new`} className='py-2 px-4 border-2 border-blue-500 text-blue-500 rounded-2xl'>Yangi</a>
+          <Link to={`/${path}/new`}>
+            <div className='py-2 px-4 border-2 border-blue-500 text-blue-500 rounded-2xl'>Yangi</div>
+          </Link>
         </div>
         <div className="">
           <Form form={form} component={false}>

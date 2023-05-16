@@ -157,7 +157,9 @@ const Sales = () => {
           <p className='font-semibold text-2xl capitalize'>
             Sotuvlar
           </p>
-          <a href={`/newsale`} className='py-2 px-4 border-2 border-blue-500 text-blue-500 rounded-2xl'>Yangi</a>
+          <Link to={`/newsale`}>
+            <div className='py-2 px-4 border-2 border-blue-500 text-blue-500 rounded-2xl'>Yangi</div>
+          </Link>
         </div>
         <div>
           <label className='mr-6'>Boshlang'ich kunni tanlang: </label>
