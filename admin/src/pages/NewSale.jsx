@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import { publicRequest, userRequest } from '../utils/requestMethods';
 import { InputNumber, Table } from 'antd';
+import ReactLoading from 'react-loading';
 
 const NewSale = () => {
   const [newQuantities, setNewQuantities] = useState({});
   const [newPrice, setNewPrice] = useState({});
   const [info, setInfo] = useState({})
   const [clientId, setClientId] = useState(null);
+  const [loading, setLoading] = useState(false)
 
   const queryClient = useQueryClient()
   const createSaleMutation = useMutation({
@@ -83,6 +85,7 @@ const NewSale = () => {
   };
 
   const handleSave = async () => {
+    setLoading(true);
     try {
       const productsToAdd = Object.entries(newQuantities).map(
         ([productId, { ketdi, price }]) => ({
@@ -133,8 +136,8 @@ const NewSale = () => {
       }
 
       await createSaleMutation.mutateAsync(sale)
-      if (createSaleMutation.isLoading) return "loading..."
 
+      setLoading(false)
       navigate("/clients");
     } catch (err) {
       alert(err);
@@ -186,6 +189,12 @@ const NewSale = () => {
       )
     },
   ];
+
+  if (loading) return (
+    <div className='text-purple-500 h-screen w-full grid place-items-center'>
+      <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+    </div>
+  );
 
   return (
     <div className='relative w-full'>
