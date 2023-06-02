@@ -3,87 +3,6 @@ import Product from "../models/Product.js"
 import Client from "../models/Client.js"
 import mongoose from "mongoose";
 
-export const createSale = async (req, res, next) => {
-  try {
-    let totalPrice = 0;
-    const productsToSell = [];
-
-    const { clientId, products } = req.body;
-
-    if (clientId === undefined) {
-      for (const product of products) {
-        await Product.findByIdAndUpdate(
-          product.productId,
-          { $inc: { soni: product.keldi } }
-        );
-        productsToSell.push(product)
-      }
-
-      const newSale = new Sale({
-        products: productsToSell
-      })
-
-      await newSale.save();
-
-      return res.status(200).send(newSale)
-    }
-
-    for (const product of products) {
-      const existingProduct = await Product.findById(product.productId);
-      if (existingProduct.soni < product.ketdi) {
-        return res.status(400).json({ error: `${existingProduct.name} is not enough` });
-      }
-
-      totalPrice = totalPrice + parseInt(existingProduct.price) * parseInt(product.ketdi);
-
-      productsToSell.push({
-        productId: existingProduct._id,
-        ketdi: product.ketdi
-      });
-    }
-
-    const newSale = new Sale({
-      clientId: new mongoose.Types.ObjectId(clientId),
-      products: productsToSell,
-      payment: req.body.payment
-    });
-
-    for (const product of productsToSell) {
-      await Product.updateOne(
-        { _id: product.productId },
-        { $inc: { soni: -product.ketdi } }
-      );
-    }
-
-    const savedSale = await newSale.save();
-
-    const updatedClient = await Client.findByIdAndUpdate(
-      { _id: clientId },
-      {
-        $push: { sales: savedSale._id },
-        $inc: { cash: savedSale.payment - totalPrice }
-      },
-      { new: true }
-    )
-
-    const options = {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Yes', callback_data: `update_sale_${sale._id}` },
-            { text: 'No', callback_data: 'no' },
-          ]
-        ]
-      }
-    };
-    bot.sendMessage(updatedClient.chatId, "Do you want to update", options);
-
-    res.status(201).json(savedSale);
-  } catch (error) {
-    next(error);
-  }
-}
-
 export const newCollection = async (req, res, next) => {
   try {
     const { products } = req.body;
@@ -95,7 +14,13 @@ export const newCollection = async (req, res, next) => {
       );
     }
 
-    res.status(200).send("Updated successfully");
+    const newSale = new Sale({
+      products
+    })
+
+    await newSale.save();
+
+    res.status(200).send(newSale);
   } catch (err) {
     next(err);
   }
@@ -103,8 +28,16 @@ export const newCollection = async (req, res, next) => {
 
 export const getSales = async (req, res, next) => {
   try {
-    const finalDate = req?.query?.date
-    const clientId = req?.query?.clientId
+    const { date, clientId } = req.query
+
+    const match = {}
+    if (date !== '') {
+      match.createdAtDate = date;
+    }
+
+    if (clientId !== 'null') {
+      match.clientId = new mongoose.Types.ObjectId(clientId);
+    }
 
     const sales = await Sale.aggregate([
       {
@@ -118,29 +51,7 @@ export const getSales = async (req, res, next) => {
         }
       },
       {
-        $match: {
-          $and: [
-            {
-              $expr: {
-                $cond: {
-                  if: { $eq: [finalDate, undefined] },
-                  then: true,
-                  else: { $eq: ["$createdAtDate", finalDate] }
-                }
-              }
-            },
-            {
-              $expr: {
-                $cond: {
-                  if: { $eq: [clientId, undefined] },
-                  then: true,
-                  else: { $eq: ['$clientId', new mongoose.Types.ObjectId(clientId)] }
-                }
-              }
-            },
-            { clientId: { $exists: true } }
-          ]
-        },
+        $match: match,
       },
       {
         $unwind: "$products"
@@ -150,6 +61,7 @@ export const getSales = async (req, res, next) => {
           _id: 1,
           clientId: 1,
           ketdi: "$products.ketdi",
+          priceOfProduct: "$products.priceOfProduct",
           status: "$status",
           payment: "$payment",
           products: 1,
@@ -179,6 +91,7 @@ export const getSales = async (req, res, next) => {
         $project: {
           _id: 1,
           ketdi: 1,
+          priceOfProduct: 1,
           products: 1,
           createdAtDate: 1,
           payment: 1,
@@ -191,7 +104,15 @@ export const getSales = async (req, res, next) => {
       },
       {
         $addFields: {
-          "products.ketdi": "$ketdi"
+          "products.ketdi": "$ketdi",
+          "products.priceOfProduct": "$priceOfProduct",
+        }
+      },
+      {
+        $addFields: {
+          summa: {
+            $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+          },
         }
       },
       {
@@ -212,6 +133,12 @@ export const getSales = async (req, res, next) => {
           clientName: {
             $first: "$clientName"
           },
+          summa: {
+            $sum: "$summa"
+          },
+          sumSoni: {
+            $sum: "$products.ketdi"
+          }
         }
       },
       {
@@ -230,7 +157,7 @@ export const getSales = async (req, res, next) => {
         }
       },
       {
-        $sort: { createdAtDate: 1 }
+        $sort: { createdAtDate: -1 }
       }
     ]);
 
@@ -242,11 +169,21 @@ export const getSales = async (req, res, next) => {
 
 export const getSalesByClient = async (req, res, next) => {
   const clientId = req.params.clientId;
+  const day = req.query.day;
+
   try {
     const sales = await Sale.aggregate([
       {
         $match: {
-          clientId: new mongoose.Types.ObjectId(clientId)
+          clientId: new mongoose.Types.ObjectId(clientId),
+          $expr: {
+            $cond: {
+              if: { $eq: [day, ''] },
+              then: true,
+              else: { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, day] }
+
+            }
+          },
         }
       },
       {
@@ -319,7 +256,7 @@ export const getSalesByClient = async (req, res, next) => {
         }
       },
       {
-        $sort: { _id: 1 }
+        $sort: { _id: -1 }
       }
     ]);
 
@@ -335,7 +272,8 @@ export const dailySales = async (req, res, next) => {
   const endDate = req.query.end;
 
   try {
-    const sales = await Sale.aggregate([
+    //Aggregation array without sum of all values
+    const aggregationArray = [
       {
         $match: {
           createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
@@ -350,19 +288,71 @@ export const dailySales = async (req, res, next) => {
         }
       },
       {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          totalKeldi: { $sum: "$products.keldi" },
-          totalKetdi: { $sum: "$products.ketdi" }
+        $lookup: {
+          from: "products",
+          localField: "products.productId",
+          foreignField: "_id",
+          as: "product"
         }
       },
       {
-        $sort: { _id: 1 }
+        $unwind: "$product"
+      },
+      {
+        $addFields: {
+          "products.cost": {
+            $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+          },
+          "products.profit": {
+            $sum: {
+              $cond: [
+                { $eq: ["$products.priceOfProduct", null] },
+                { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                {
+                  $subtract: [
+                    { $multiply: ["$products.priceOfProduct", "$products.ketdi"] },
+                    { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          totalKeldi: { $sum: "$products.keldi" },
+          totalKetdi: { $sum: "$products.ketdi" },
+          totalCost: { $sum: "$products.cost" },
+          totalProfit: { $sum: "$products.profit" },
+        }
+      },
+      {
+        $sort: { _id: -1 }
       }
-    ]);
+    ]
 
-    sales.length === 0 && res.status(404).json("No sales");
-    res.status(200).json(sales);
+    const newArray = [
+      {
+        $group: {
+          _id: null,
+          totalKeldi: { $sum: "$totalKeldi" },
+          totalKetdi: { $sum: "$totalKetdi" },
+          totalCost: { $sum: "$totalCost" },
+          totalProfit: { $sum: "$totalProfit" },
+        }
+      },
+    ]
+
+    const sales = await Sale.aggregate(aggregationArray);
+    const salesAllSummed = await Sale.aggregate(aggregationArray.concat(newArray));
+
+    const newObject = {
+      sales,
+      salesAllSummed: salesAllSummed[0]
+    }
+    res.status(200).json(newObject);
   } catch (err) {
     next(err);
   }
@@ -381,6 +371,89 @@ export const deleteSale = async (req, res, next) => {
     await Sale.findByIdAndDelete(req.params.id)
 
     res.status(200).json("O'chirildi");
+  } catch (err) {
+    next(err);
+  }
+}
+
+export const getMontlySalesOfClients = async (req, res, next) => {
+  try {
+    const id = req.query.id;
+    const date = new Date();
+    const lastYear = new Date(new Date().setFullYear(date.getFullYear() - 1));
+
+    const data = await Sale.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: lastYear },
+          $expr: {
+            $cond: {
+              if: { $eq: [id, ''] },
+              then: true,
+              else: { $eq: ["$clientId", new mongoose.Types.ObjectId(id)] }
+            }
+          },
+        }
+      },
+      {
+        $unwind: "$products"
+      },
+      {
+        $project: {
+          _id: 1,
+          productId: "$products.productId",
+          cost: { $multiply: ["$products.ketdi", "$products.priceOfProduct"] },
+          ketdi: "$products.ketdi",
+          status: "$status",
+          products: 1,
+          createdAt: 1,
+          month: { $month: "$createdAt" }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $unwind: "$product"
+      },
+      {
+        $group: {
+          _id: {
+            productId: "$productId",
+            month: "$month",
+          },
+          monthlyKetdi: { $sum: "$ketdi" },
+          monthlyCost: { $sum: "$cost" },
+          product: {
+            $first: "$product"
+          }
+        },
+      },
+      {
+        $project: {
+          _id: "$_id.month",
+          productId: "$_id.productId",
+          monthlyKetdi: 1,
+          monthlyCost: 1,
+          product: 1
+        }
+      },
+      {
+        $group: {
+          _id: "$_id",
+          products: {
+            $push: "$$ROOT"
+          }
+        }
+      },
+    ])
+
+    res.status(200).json(data)
   } catch (err) {
     next(err);
   }

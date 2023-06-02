@@ -11,15 +11,13 @@ const ClientSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    tgUsername: {
-      type: String,
-      // required: true,
-      unique: true,
-    },
-    chatId: {
-      type: String,
-      unique: true,
-    },
+    // tgUsername: {
+    //   type: String,
+    //   required: true,
+    // },
+    // chatId: {
+    //   type: String,
+    // },
     sales: [{
       type: SchemaTypes.ObjectId,
       ref: 'Sale'

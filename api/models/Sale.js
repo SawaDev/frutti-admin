@@ -21,6 +21,10 @@ const ProductSalesSchema = new mongoose.Schema(
         type: Number,
         default: 0,
         min: 0,
+      },
+      priceOfProduct: {
+        type: Number,
+        min: 0
       }
     }],
     payment: {

@@ -57,24 +57,24 @@ app.use((err, req, res, next) => {
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-bot.onText(/\/start/, async (msg) => {
-  const chatId = msg.chat.id;
+// bot.onText(/\/start/, async (msg) => {
+//   const chatId = msg.chat.id;
 
-  try {
-    const client = await Client.findOne({ tgUsername: msg.chat.username });
-    if (client) {
-      await Client.updateOne({ _id: client._id }, { $set: { chatId: chatId } });
-    } else {
-      console.log('client not found');
-    }
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
+//   try {
+//     const client = await Client.findOne({ tgUsername: msg.chat.username });
+//     if (client) {
+//       await Client.updateOne({ _id: client._id }, { $set: { chatId: chatId } });
+//     } else {
+//       console.log('client not found');
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     throw err;
+//   }
 
-  const message = `Hello, Welcome To my Bot! ${msg.chat.username}`;
-  bot.sendMessage(chatId, message);
-});
+//   const message = `Frutti korxonasining telegram botiga xush kelibsiz!`;
+//   bot.sendMessage(chatId, message);
+// });
 
 app.post('/api/sales', verifyToken, async (req, res, next) => {
   try {
@@ -107,18 +107,19 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
         return res.status(400).json({ message: `Omborda ${existingProduct.name} dan ${product.ketdi} ta mahsulot mavjud emas!` });
       }
 
-      totalPrice = totalPrice + parseInt(existingProduct.price) * parseInt(product.ketdi);
+      totalPrice = totalPrice + parseInt(product.priceOfProduct) * parseInt(product.ketdi);
 
       productsToSell.push({
         productId: existingProduct._id,
-        ketdi: product.ketdi
+        ketdi: product.ketdi,
+        priceOfProduct: product.priceOfProduct
       });
     }
 
     const client = await Client.findById(clientId);
-    if (!client.chatId) {
-      return res.status(404).json({ message: `${client.name} telegram botdan ro'yxatdan o'tmagan yoki telegram username xato berilgan!` })
-    }
+    // if (!client.chatId) {
+    //   return res.status(404).json({ message: `${client.name} telegram botdan ro'yxatdan o'tmagan yoki telegram username xato berilgan!` })
+    // }
 
     const newSale = new Sale({
       clientId: new mongoose.Types.ObjectId(clientId),
@@ -144,38 +145,38 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
       { new: true }
     )
 
-    const options = {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Yes', callback_data: `update_sale_${savedSale._id}` },
-            { text: 'No', callback_data: `no_update_sale_${savedSale._id}` },
-          ]
-        ]
-      }
-    };
+    // const options = {
+    //   reply_markup: {
+    //     inline_keyboard: [
+    //       [
+    //         { text: 'Yes', callback_data: `update_sale_${savedSale._id}` },
+    //         { text: 'No', callback_data: `no_update_sale_${savedSale._id}` },
+    //       ]
+    //     ]
+    //   }
+    // };
 
-    const message = `Yangi harid ma'lumotlati:\nTo'lov: ${savedSale.payment}\n\nMahsulotlar:\n`
+    // const message = `Yangi harid ma'lumotlati:\nTo'lov: ${savedSale.payment}\n\nMahsulotlar:\n`
 
-    async function getProductById(productId) {
-      try {
-        const product = await Product.findById(productId);
+    // async function getProductById(productId) {
+    //   try {
+    //     const product = await Product.findById(productId);
 
-        return product.name;
-      } catch (err) {
-        console.log(err);
-      }
-    }
+    //     return product.name;
+    //   } catch (err) {
+    //     console.log(err);
+    //   }
+    // }
 
-    const productsString = await Promise.all(productsToSell.map(async (product) => {
-      const foundProduct = await getProductById(product.productId);
-      const productName = foundProduct ? foundProduct : 'Unknown';
-      return `Nomi: ${productName}, soni: ${product.ketdi}\n`;
-    }))
+    // const productsString = await Promise.all(productsToSell.map(async (product) => {
+    //   const foundProduct = await getProductById(product.productId);
+    //   const productName = foundProduct ? foundProduct : 'Unknown';
+    //   return `Nomi: ${productName}, soni: ${product.ketdi}\n`;
+    // }))
 
-    const productsMessage = message + productsString.join("");
+    // const productsMessage = message + productsString.join("");
 
-    bot.sendMessage(updatedClient.chatId, productsMessage, options);
+    // bot.sendMessage(updatedClient.chatId, productsMessage, options);
 
     res.status(201).json(savedSale);
   } catch (error) {
@@ -183,60 +184,75 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
   }
 })
 
-bot.on('callback_query', async (callbackQuery) => {
-  const chatId = callbackQuery.message.chat.id;
-  const messageId = callbackQuery.message.message_id;
-  const callbackData = callbackQuery.data;
+// bot.on('callback_query', async (callbackQuery) => {
+//   const chatId = callbackQuery.message.chat.id;
+//   const messageId = callbackQuery.message.message_id;
+//   const callbackData = callbackQuery.data;
 
-  if (callbackData.startsWith('update_sale_')) {
-    const saleId = callbackData.split('_')[2];
+//   if (callbackData.startsWith('update_sale_')) {
+//     const saleId = callbackData.split('_')[2];
 
-    const updatedSale = await Sale.findByIdAndUpdate(saleId, { status: 'Tasdiqlandi' }, { new: true });
+//     const updatedSale = await Sale.findByIdAndUpdate(saleId, { status: 'Tasdiqlandi' }, { new: true });
 
-    const message = `The sale has been updated: ${updatedSale.status}`;
-    bot.sendMessage(chatId, message);
+//     const message = `Yangi harid ma'lumotlati:\nHarid xolati: ${updatedSale.status}\nTo'lov: ${updatedSale.payment}\n\nMahsulotlar:\n`
 
-    bot.deleteMessage(chatId, messageId);
-  } else if (callbackData.startsWith('no_')) {
-    const saleId = callbackData.split('_')[3];
+//     async function getProductById(productId) {
+//       try {
+//         const product = await Product.findById(productId);
 
-    const updatedSale = await Sale.findByIdAndUpdate(saleId, { status: 'Rad etildi' }, { new: true });
+//         return product.name;
+//       } catch (err) {
+//         console.log(err);
+//       }
+//     }
 
-    const message = `The sale has been updated: ${updatedSale.status}`;
-    bot.sendMessage(chatId, message);
+//     const productsString = await Promise.all(updatedSale.products.map(async (product) => {
+//       const foundProduct = await getProductById(product.productId);
+//       const productName = foundProduct ? foundProduct : 'Unknown';
+//       return `Nomi: ${productName}, soni: ${product.ketdi}\n`;
+//     }))
 
-    bot.deleteMessage(chatId, messageId);
-  }
-});
+//     const productsMessage = message + productsString.join("");
 
-app.post('/api/sendmessage', async (req, res) => {
-  const { username, message } = req.body;
+//     bot.sendMessage(chatId, productsMessage);
 
-  try {
-    const client = await Client.findOne({ tgUsername: username })
+//     bot.deleteMessage(chatId, messageId);
+//   } else if (callbackData.startsWith('no_')) {
+//     const saleId = callbackData.split('_')[3];
 
-    const options = {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Yes', callback_data: 'yes' },
-            { text: 'No', callback_data: 'no' },
-          ]
-        ]
-      }
-    };
+//     const updatedSale = await Sale.findByIdAndUpdate(saleId, { status: 'Rad etildi' }, { new: true });
 
-    bot.sendMessage(client.chatId, message, options);
-    res.status(200).send('Message sent successfully');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error occurred while sending the message');
-  }
-});
+//     const message = `Harid: ${updatedSale.status}`;
+//     bot.sendMessage(chatId, message);
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../admin/dist/index.html'));
-});
+//     bot.deleteMessage(chatId, messageId);
+//   }
+// });
+
+// app.post('/api/sendmessage', async (req, res) => {
+//   const { username, message } = req.body;
+
+//   try {
+//     const client = await Client.findOne({ tgUsername: username })
+
+//     const options = {
+//       reply_markup: {
+//         inline_keyboard: [
+//           [
+//             { text: 'Yes', callback_data: 'yes' },
+//             { text: 'No', callback_data: 'no' },
+//           ]
+//         ]
+//       }
+//     };
+
+//     bot.sendMessage(client.chatId, message, options);
+//     res.status(200).send('Message sent successfully');
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send('Error occurred while sending the message');
+//   }
+// });
 
 app.listen(port, () => {
   connect();

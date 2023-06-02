@@ -1,9 +1,6 @@
-import User from "../models/User.js";
 import Sale from "../models/Sale.js";
 import Product from "../models/Product.js";
 import { createError } from "../utils/error.js";
-
-import mongoose from "mongoose";
 
 export const createProduct = async (req, res, next) => {
   try {
@@ -78,7 +75,7 @@ export const getStats = async (req, res, next) => {
         $group: {
           _id: null,
           productCount: { $sum: "$soni" },
-          overallCost: { $sum: { $multiply: ["$soni", "$price"] } }
+          overallCost: { $sum: { $multiply: ["$soni", "$tanNarxi"] } }
         }
       }
     ]);
@@ -130,17 +127,38 @@ export const getStats = async (req, res, next) => {
       {
         $group: {
           _id: null,
-          monthlySale: { $sum: { $multiply: ["$products.ketdi", "$product.price"] } }
+          monthlySale: {
+            $sum: {
+              $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+            }
+          },
+          monthlyProfit: {
+            $sum: {
+              $cond: [
+                { $eq: ["$products.priceOfProduct", null] },
+                { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                {
+                  $subtract: [
+                    { $multiply: ["$products.priceOfProduct", "$products.ketdi"] },
+                    { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                  ]
+                }
+              ]
+            }
+          }
         }
       }
+      
     ]);
     const monthlySale = sales.length ? sales[0].monthlySale : 0;
+    const monthlyProfit = sales.length ? sales[0].monthlyProfit : 0;
 
     const warehouseInfo = {
       productsCount,
       overallCost,
       monthlyEarnings,
-      monthlySale
+      monthlySale,
+      monthlyProfit
     };
 
     res.status(200).json(warehouseInfo);

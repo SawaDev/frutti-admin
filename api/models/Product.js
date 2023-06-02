@@ -7,6 +7,10 @@ const ProductSchema = new mongoose.Schema(
       required: true,
       unique: true
     },
+    tanNarxi: {
+      type: Number,
+      required: true
+    },
     price: {
       type: Number,
       required: true
