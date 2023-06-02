@@ -8,11 +8,18 @@ import getCurrentUser from '../utils/getCurrentUser'
 import Exchange from '../components/charts/Exchange'
 
 const Home = () => {
+  const stats = {
+    productsCount: 0,
+    overallCost: 0,
+    monthlyEarnings: 0,
+    monthlySale: 0
+  }
+
   const { isLoading, data } = useQuery({
     queryKey: ["stats"],
     queryFn: () =>
       publicRequest.get("/products/stats").then((res) => {
-        return res.data;
+        return res.data === null ? stats : res.data;
       }),
   });
 
@@ -33,17 +40,20 @@ const Home = () => {
                   <Widget type="money_in_warehouse" stats={data?.overallCost} />
                 </div>
                 <div>
-                  <Widget type="earning" stats={data?.monthlyEarnings} />
+                  <Widget type="profit" stats={data?.monthlyProfit} />
                 </div>
                 <div className="align-self-center">
                   <Widget type="sale" stats={data?.monthlySale} />
+                </div>
+                <div>
+                  <Widget type="earning" stats={data?.monthlyEarnings} />
                 </div>
               </div>
               {/* <div className='relative'>
                 <div className='absolute top-0 -left-10 sm:left-0 w-full'> */}
 
-                <Exchange />
-                {/* </div>
+              <Exchange />
+              {/* </div>
               </div> */}
               {/* <div action="" className="addForm mt-10 bg-green-100 p-2 flex gap-2">
           <input onChange={handleChange} type="text" id="name" placeholder="name" />

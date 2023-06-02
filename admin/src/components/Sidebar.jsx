@@ -59,6 +59,14 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
                   <span className="text-xl text-purple-500">Yangi Sotuv</span>
                 </li>
               </Link>
+              <Link to="/newCollection" onClick={handleMenu}>
+                <li className={linkClass}>
+                  <div>
+                    <AttachMoneyIcon className="text-xl text-purple-500" />
+                  </div>
+                  <span className="text-xl text-purple-500">Yangi Mol</span>
+                </li>
+              </Link>
               <p className="text-gray-400 m-2 mt-3 uppercase">LISTS</p>
               <Link to="/products">
                 <li className={linkClass} onClick={() => setToggleMenu(!toggleMenu)}>
@@ -82,6 +90,14 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
                     <InsertChartIcon className="text-xl text-purple-500" />
                   </div>
                   <span className="text-xl text-purple-500 mb-2 cursor-pointer">Sotuvlar</span>
+                </li>
+              </Link>
+              <Link to="/stats">
+                <li className={linkClass}>
+                  <div>
+                    <InsertChartIcon className="text-xl text-purple-500" />
+                  </div>
+                  <span className="text-xl text-purple-500 mb-2 cursor-pointer">Statistika</span>
                 </li>
               </Link>
               {/* <p className="text-gray-400 m-2 mt-3 uppercase">USEFUL</p>

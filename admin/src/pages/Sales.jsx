@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Table } from 'antd'
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -9,15 +9,34 @@ const Sales = () => {
   const location = useLocation()
   const path = location.pathname.split('/')[1]
 
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState('')
+  const [clientId, setClientId] = useState(null)
 
-  const { data, isLoading } = useQuery({
-    queryKey: [path, date],
-    queryFn: () =>
-      publicRequest.get(`/${path}?date=${date}`).then((res) => {
-        return res.data;
-      }),
+  const [salesQuery, clientsQuery] = useQueries({
+    queries: [
+      {
+        queryKey: [path, date, clientId],
+        queryFn: () =>
+          publicRequest.get(`/${path}?date=${date}&clientId=${clientId}`).then((res) => {
+            return res.data;
+          }),
+      },
+      {
+        queryKey: ['clients'],
+        queryFn: () =>
+          publicRequest.get(`/clients`).then((res) => res.data),
+      },
+    ]
   });
+
+  function handleClientChange(e) {
+    const selectedClient = clientsQuery.data.find((client) => {
+      client.name === e.target.value
+    });
+    if (selectedClient) {
+      setClientId(selectedClient._id);
+    }
+  }
 
   const queryClient = useQueryClient();
 
@@ -65,87 +84,18 @@ const Sales = () => {
     },
     {
       title: 'Narxi',
-      dataIndex: 'price',
-      key: 'price',
+      dataIndex: 'priceOfProduct',
+      key: 'priceOfProduct',
       width: 100,
+      render: (_, record) => (
+        <p>{parseInt(record?.priceOfProduct).toLocaleString("fr-fr")}</p>
+      )
     }
   ]
 
-  // const expandedRowRender = (record) => {
-  //   const columns = [
-  //     {
-  //       title: 'Rasmi',
-  //       dataIndex: 'img',
-  //       key: 'img',
-  //       render: (_, record) => (
-  //         <>
-  //           <img src={record.img} width={24} height={24} />
-  //         </>
-  //       )
-  //     },
-  //     {
-  //       title: 'Nomi',
-  //       dataIndex: 'name',
-  //       key: 'name',
-  //     },
-  //     {
-  //       title: 'Ketdi',
-  //       dataIndex: 'ketdi',
-  //       key: 'ketdi'
-  //     },
-  //     {
-  //       title: 'Narxi',
-  //       dataIndex: 'price',
-  //       key: 'price',
-  //     }
-  //   ]
+  if (clientsQuery.isLoading) return <p>Loading...</p>
 
-  //   return <Table
-  //     columns={columns}
-  //     dataSource={record}
-  //     pagination={false}
-  //     scroll={{
-  //       x: 500
-  //     }}
-  //   />;
-  // }
-
-  // const columns = [
-  //   {
-  //     title: 'Xaridor Ismi',
-  //     dataIndex: 'clientName',
-  //     key: 'clientName',
-  //   },
-  //   {
-  //     title: "To'lov",
-  //     dataIndex: 'payment',
-  //     key: 'payment',
-  //     render: (_, record) => <p>{record?.payment ? record.payment : 0}</p>,
-  //   },
-  //   {
-  //     title: 'Number of Products',
-  //     key: 'numberOfProducts',
-  //     render: (record) => record?.products?.length,
-  //   },
-  //   {
-  //     title: 'Status',
-  //     dataIndex: 'status',
-  //     key: 'status',
-  //     render: (_, record) => (
-  //       <p className={`px-3 py-2 w-fit rounded-lg ${record?.status === "Kutilmoqda" ? 'bg-yellow-50 text-yellow-500' : record.status === "Tasdiqlandi" ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>{record.status === null ? "Kutilmoqda" : record.status}</p>
-  //     )
-  //   },
-  //   {
-  //     title: 'Action',
-  //     dataIndex: 'action',
-  //     render: (_, record) => (
-  //       <button
-  //         onClick={() => handleDelete(record._id)}
-  //         disabled={mutation.isLoading}
-  //         className='cursor-pointer rounded-xl border-2 border-red-300 text-red-500 w-fit font-semibold px-3 py-2'>Delete</button>
-  //     )
-  //   }
-  // ];
+  if (salesQuery.error) return <p>Serverda xatolik</p>
 
   return (
     <div>
@@ -161,34 +111,50 @@ const Sales = () => {
             <div className='py-2 px-4 border-2 border-blue-500 text-blue-500 rounded-2xl'>Yangi</div>
           </Link>
         </div>
-        <div>
-          <label className='mr-6'>Boshlang'ich kunni tanlang: </label>
-          <input type="date" name="date" className="bg-gray-100 p-2 rounded" value={date} onChange={event => setDate(event.target.value)} />
+        <div className='flex justify-start'>
+          <div className='basis-1/2'>
+            <label className='mr-6'>Boshlang'ich kunni tanlang: </label>
+            <input type="date" name="date" className="bg-gray-100 p-2 rounded" value={date} onChange={event => setDate(event.target.value)} />
+          </div>
+          <div className=''>
+            <label htmlFor="client" className='mr-6'>Haridorni tanlash:</label>
+            <select
+              id="client"
+              name="client"
+              className='cursor-pointer border-2 border-black rounded-md py-2 px-4 capitalize'
+              onChange={event => setClientId(event.target.value)}
+              value={clientId}
+            >
+              <option value="null">null</option>
+              {clientsQuery?.data.map((client) => (
+                <option value={client._id} key={client._id}>{client?.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className='mr-6'>Clientni tanlash: </label>
-          <input type="date" name="date" className="bg-gray-100 p-2 rounded" value={date} onChange={event => setDate(event.target.value)} />
-        </div>
-        <div>SHotta yoki alohida clientti pagida klientti xaridlari haqida malumot bosin</div>
 
-        {isLoading
+        {salesQuery.isLoading
           ? "Loading..."
           : (
             <>
               {
-                data?.length === 0 ? (
-                  <div className='text-3xl font-bold'>{date} dan bugunga qadar xaridlar mavjud emas</div>
-                ) : data.map((sale) => (
+                salesQuery.data?.length === 0 ? (
+                  <div className='text-3xl font-bold'>{date} da xarid bo'lmagan</div>
+                ) : salesQuery.data.map((sale) => (
                   <div key={sale.createdAtDate}>
                     <h1 className='mt-10'>{sale.createdAtDate}</h1>
                     {sale.sales.map((s) => (
                       <>
                         <div className='flex items-center gap-8 mt-4 text-xl font-semibold'>
                           <p className=''>{s.clientName}</p>
-                          <p className=''>To'lov: <span>{s.payment}</span></p>
+                          <p className=''>To'lov: <span>{parseInt(s?.payment).toLocaleString("fr-fr")}</span></p>
+                          <p className=''>Summa: <span>{parseInt(s?.summa).toLocaleString("fr-fr")}</span></p>
+                          <p className=''>Soni: <span>{parseInt(s?.sumSoni).toLocaleString("fr-fr")}</span></p>
                         </div>
                         <Table
-                          dataSource={s.products}
+                          dataSource={s.products.sort((a, b) => {
+                            return b.ketdi - a.ketdi;
+                          })}
                           pagination={false}
                           columns={productColumns}
                         />
@@ -196,39 +162,10 @@ const Sales = () => {
                     ))}
                   </div>
                 ))
-                // ) : data.map((sale) => {
-                //   const saleData = sale.sales.map((item, index) => ({
-                //     key: index,
-                //     ...item,
-                //   }));
-                //   return (
-                //     <div key={sale.createdAtDate} className='flex flex-col gap-2 mb-5'>
-                //       <div className='text-lg font-semibold'>
-                //         Sana: <span className=''>{sale.createdAtDate}</span>
-                //       </div>
-                //       <div className='border-[1px] overflow-hidden'>
-                //         <Table
-                //           expandable={{
-                //             expandedRowRender: (record) =>
-                //               expandedRowRender(record?.products),
-                //             defaultExpandedRowKeys: ['0'],
-                //           }}
-                //           dataSource={saleData}
-                //           columns={columns}
-                //           pagination={false}
-                //           scroll={{
-                //             x: 300
-                //           }}
-                //         />
-                //       </div>
-                //     </div>
-                //   )
-                // })
               }
             </>
           )
         }
-
       </div>
     </div>
   )

@@ -1,19 +1,15 @@
-import React, { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from "react-router-dom"
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useLocation } from "react-router-dom"
+import { useQueries } from '@tanstack/react-query'
 
-import { publicRequest, userRequest } from '../utils/requestMethods'
+import { publicRequest } from '../utils/requestMethods'
 import Navbar from '../components/Navbar'
-import Barchart from '../components/charts/Barchart'
-import { Badge, Table } from 'antd'
+import { Table } from 'antd'
+import { useState } from "react"
 
 const SingleClient = () => {
   const location = useLocation();
   const id = location.pathname.split("/")[2];
-  const path = location.pathname.split("/")[1];
-  const [startDate, setStartDate] = useState('')
-
-  const navigate = useNavigate();
+  const [day, setDay] = useState("")
 
   const [clientQuery, clientSales] = useQueries({
     queries: [
@@ -25,9 +21,9 @@ const SingleClient = () => {
           }),
       },
       {
-        queryKey: ['sales', id],
+        queryKey: ['sales', id, day],
         queryFn: () =>
-          publicRequest.get(`/sales/${id}`).then((res) => res.data),
+          publicRequest.get(`/sales/${id}?day=${day}`).then((res) => res.data),
       },
     ],
   });
@@ -45,6 +41,7 @@ const SingleClient = () => {
     const columns = [
       {
         title: 'Rasmi',
+        width: 100,
         dataIndex: 'img',
         key: 'img',
         render: (_, record) => (
@@ -55,22 +52,30 @@ const SingleClient = () => {
       },
       {
         title: 'Nomi',
+        width: 100,
         dataIndex: 'name',
         key: 'name',
       },
       {
         title: 'Ketdi',
+        width: 100,
         dataIndex: 'ketdi',
         key: 'ketdi'
       },
       {
         title: 'Narxi',
+        width: 100,
         dataIndex: 'price',
         key: 'price',
       }
     ]
 
-    return <Table columns={columns} dataSource={record} pagination={false} />;
+    return <Table
+      columns={columns}
+      dataSource={record.sort((a, b) => {
+        return b.ketdi - a.ketdi;
+      })}
+      pagination={false} />;
   }
 
   const saleColumn = [
@@ -79,7 +84,7 @@ const SingleClient = () => {
       dataIndex: 'payment',
       key: 'payment',
       render: (_, record) => (
-        <p>{record?.payment === null ? 0 : record.payment}</p>
+        <p>{record?.payment === null ? 0 : parseInt(record.payment).toLocaleString('fr-FR')}</p>
       )
     },
     {
@@ -104,14 +109,18 @@ const SingleClient = () => {
               <h1 className="mb-3 text-black text-xl font-medium capitalize">{clientQuery.data?.name}</h1>
               <div className="mb-2.5 text-md ">
                 <span className="font-bold text-gray-400">Hisob: </span>
-                <span className={`font-light ${clientQuery.data?.cash < 0 ? 'text-red-500' : 'text-green-500'}`}>{clientQuery.data?.cash}</span>
+                <span className={`font-light ${clientQuery.data?.cash < 0 ? 'text-red-500' : 'text-green-500'}`}>{parseInt(clientQuery.data?.cash).toLocaleString('fr-FR')}</span>
               </div>
             </div>
+          </div>
+          <div className='mx-5 my-4 mt-10'>
+            <label className='mr-6 font-semibold text-xl'>Kunni tanlang: </label>
+            <input type="date" name="date" className="bg-gray-100 p-2 rounded" value={day} onChange={event => setDay(event.target.value)} />
           </div>
           <div className='flex flex-col gap-2 mb-5 mx-5'>
             {
               clientSales.data.length === 0 ? (
-                <p>Xaridlar mavjud emas</p>
+                <p>{day} da haridlar mavjud emas</p>
               ) : (
                 clientSales.data.map((sale) => {
                   const saleData = sale.sales.map((item, index) => ({
@@ -128,10 +137,13 @@ const SingleClient = () => {
                           expandable={{
                             expandedRowRender: (record) =>
                               expandedRowRender(record?.products),
-                            defaultExpandedRowKeys: ['0'],
+                            // defaultExpandedRowKeys: ['0'],
+                            defaultExpandAllRows: true,
                           }}
                           columns={saleColumn}
-                          dataSource={saleData}
+                          dataSource={saleData.sort((a, b) => {
+                            return a.createdAt - b.createdAt
+                          })}
                           pagination={false}
                         />
                       </div>

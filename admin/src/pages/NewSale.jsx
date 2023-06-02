@@ -3,14 +3,14 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import { publicRequest, userRequest } from '../utils/requestMethods';
-import { Table, InputNumber } from 'antd';
-import axios from 'axios';
+import { InputNumber, Table } from 'antd';
 
 const NewSale = () => {
   const [newQuantities, setNewQuantities] = useState({});
+  const [newPrice, setNewPrice] = useState({});
   const [info, setInfo] = useState({})
   const [clientId, setClientId] = useState(null);
-  
+
   const queryClient = useQueryClient()
   const createSaleMutation = useMutation({
     mutationFn: (data) => {
@@ -68,8 +68,15 @@ const NewSale = () => {
   if (productsQuery.error)
     return 'An error has occurred: ' + productsQuery.error.message;
 
-  const handleQuantityChange = (productId, value) => {
+  const handleQuantityChange = (productId, value, defaultPrice) => {
     setNewQuantities(prevQuantities => ({
+      ...prevQuantities,
+      [productId]: { ketdi: value, price: defaultPrice }
+    }));
+  };
+
+  const handlePriceChange = (productId, value) => {
+    setNewPrice(prevQuantities => ({
       ...prevQuantities,
       [productId]: value
     }));
@@ -78,18 +85,37 @@ const NewSale = () => {
   const handleSave = async () => {
     try {
       const productsToAdd = Object.entries(newQuantities).map(
-        ([productId, ketdi]) => ({
+        ([productId, { ketdi, price }]) => ({
           productId,
           ketdi,
+          price
+        })
+      );
+
+      const pricesToAdd = Object.entries(newPrice).map(
+        ([productId, price]) => ({
+          productId,
+          price
         })
       );
 
       const filteredProducts = productsToAdd.filter((p) => p.ketdi !== null);
+      const filteredPrices = pricesToAdd.filter((p) => p.ketdi !== null);
+
+      const mergedArray = filteredProducts.map((item1) => {
+        const item = filteredPrices.find((item2) => item1.productId === item2.productId)
+        if (item?.price !== null && item?.price !== undefined) {
+          return { productId: item1.productId, ketdi: item1.ketdi, priceOfProduct: item.price }
+        }
+
+        return { productId: item1.productId, ketdi: item1.ketdi, priceOfProduct: item1.price }
+      })
+      console.log(mergedArray)
 
       const sale = {
         ...info,
         clientId,
-        products: filteredProducts,
+        products: mergedArray,
         status: "Kutilmoqda"
       };
 
@@ -107,6 +133,7 @@ const NewSale = () => {
       }
 
       await createSaleMutation.mutateAsync(sale)
+      if (createSaleMutation.isLoading) return "loading..."
 
       navigate("/clients");
     } catch (err) {
@@ -126,16 +153,35 @@ const NewSale = () => {
       key: 'soni'
     },
     {
+      title: 'Narxi',
+      dataIndex: 'price',
+      key: 'price'
+    },
+    {
+      title: 'Yangi narx',
+      dataIndex: 'ketdi',
+      key: 'ketdi',
+      render: (text, record) => (
+        <InputNumber
+          className='w-[80%]'
+          min={0}
+          type="number"
+          defaultValue={text}
+          onChange={value => handlePriceChange(record._id, value)}
+        />
+      )
+    },
+    {
       title: 'Soni',
       dataIndex: 'ketdi',
       key: 'ketdi',
       render: (text, record) => (
         <InputNumber
-          className='w-1/2'
+          className='w-[80%]'
           min={0}
           type="number"
           defaultValue={text}
-          onChange={value => handleQuantityChange(record._id, value)}
+          onChange={value => handleQuantityChange(record._id, value, record.price)}
         />
       )
     },
@@ -147,9 +193,9 @@ const NewSale = () => {
         <Navbar />
       </div>
       <div className='max-w-7xl mx-auto pt-[100px] flex flex-col'>
-        <span className="text-gray-600 text-3xl mb-6">Here you can add new sale: </span>
+        <span className="text-gray-600 text-3xl mb-6">Bu yerda siz yangi sotuvni kiritasiz: </span>
         <div className='flex flex-col mb-5 mx-5 bg-white py-4 px-5 shadow-lg rounded-lg'>
-          <label className="text-lg font-semibold mb-2">Select Customer: </label>
+          <label className="text-lg font-semibold mb-2">Xaridorni tanlang: </label>
           <input
             placeholder="Client Name"
             type="text"
@@ -162,7 +208,7 @@ const NewSale = () => {
               <option key={client._id} value={client?.name} />
             ))}
           </datalist>
-          <label className="text-lg font-semibold mt-5 mb-2">Enter the payment: </label>
+          <label className="text-lg font-semibold mt-5 mb-2">To'lovni kiriting: </label>
           <input
             placeholder="Payment"
             name="payment"
@@ -173,7 +219,7 @@ const NewSale = () => {
           />
         </div>
         <div className='mt-8 px-5 bg-white'>
-          <span className='text-xl'>Here is the list of products</span>
+          <span className='text-xl'>Mahsulotlar: </span>
           <Table
             columns={columns}
             dataSource={productsQuery.data}
@@ -182,7 +228,13 @@ const NewSale = () => {
           />
         </div>
         <div className='w-full flex justify-end pr-5 pt-5'>
-          <button className='bg-purple-100 text-purple-600 py-4 px-6 mb-10 rounded-xl duration-100 ease-in hover:scale-110' onClick={handleSave}>Save</button>
+          <button
+            className='bg-purple-100 text-purple-600 py-4 px-6 mb-10 rounded-xl duration-100 ease-in hover:scale-110'
+            onClick={handleSave}
+            disabled={createSaleMutation.isLoading}
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>

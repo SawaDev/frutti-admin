@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
@@ -48,7 +47,7 @@ const Widget = ({ type, stats }) => {
       break;
     case "earning":
       data = {
-        title: "Oylik Foyda",
+        title: "Oylik To'lov",
         isMoney: true,
         link: "View net earnings",
         amount: stats,
@@ -85,6 +84,25 @@ const Widget = ({ type, stats }) => {
         ),
       };
       break;
+    case "profit":
+      data = {
+        title: "Oylik Sof Foyda",
+        isMoney: true,
+        amount: stats,
+        link: "See details",
+        icon: (
+          <div className="flex items-end">
+            <div className="bg-purple-200 p-2 rounded-md">
+              <AccountBalanceWalletOutlinedIcon
+                style={{
+                  color: "purple",
+                }}
+              />
+            </div>
+          </div>
+        ),
+      };
+      break;
     default:
       break;
   }
@@ -94,9 +112,8 @@ const Widget = ({ type, stats }) => {
       <div className="flex flex-col">
         <span className="text-lg font-bold">{data.title}</span>
         <span className="text-2xl font-light">
-          {data?.amount}  {data.isMoney ? "sum" : "ta"}
+          {data?.amount ? parseInt(data?.amount).toLocaleString("fr-fr") : 0}  {data.isMoney ? "sum" : "ta"}
         </span>
-        <span className="text-base">{data.link}</span>
       </div>
       {data.icon}
     </div>

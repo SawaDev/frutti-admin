@@ -125,7 +125,7 @@ const List = () => {
       title: 'soni',
       dataIndex: 'soni',
       width: '25%',
-      editable: true,
+      // editable: true,
     },
     {
       title: 'price',
@@ -134,7 +134,7 @@ const List = () => {
       editable: true,
     },
     {
-      title: 'operations',
+      // title: 'operations',
       dataIndex: 'operations',
       render: (_, record) => {
         const editable = isEditing(record);
@@ -183,7 +183,7 @@ const List = () => {
         return (
           <div className={status < 0 ? 'bg-red-100 text-red-500 py-1 px-3 rounded-md text-center' : 'bg-green-100 text-green-500 py-1 px-3 rounded-md text-center'}>
             <span>
-              {record.cash}
+              {parseInt(record.cash).toLocaleString("fr-fr")}
             </span>
           </div>
         )

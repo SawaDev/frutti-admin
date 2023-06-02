@@ -14,7 +14,6 @@ const NewClient = () => {
 
   const handleChange = (e) => {
     setInfo((prev) => ({ ...prev, [e.target.id]: e.target.value }));
-    console.log(info)
   };
 
   const queryClient = useQueryClient();

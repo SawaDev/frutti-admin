@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, HashRouter } from "react-router-dom";
 
 import './App.css'
@@ -11,6 +10,8 @@ import NewClient from "./pages/NewClient";
 import SingleClient from "./pages/SingleClient";
 import NewSale from "./pages/NewSale";
 import Sales from "./pages/Sales";
+import Stats from "./pages/Stats";
+import NewCollection from "./pages/NewCollection";
 
 function App() {
   const user = JSON.parse(localStorage.getItem("currentUser"));
@@ -23,11 +24,13 @@ function App() {
           <Route path="/products" element={<List />} />
           <Route path="/clients" element={<List />} />
           <Route path="/newsale" element={<NewSale />} />
+          <Route path="/newCollection" element={<NewCollection />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/products/new" element={<NewProduct />} />
           <Route path="/clients/new" element={<NewClient />} />
           <Route path="/products/:id" element={<SingleProduct />} />
           <Route path="/clients/:id" element={<SingleClient />} />
+          <Route path="/stats" element={<Stats />} />
           <Route path="/*" element={<Navigate to="/" />} />
         </Routes>
       ) : (

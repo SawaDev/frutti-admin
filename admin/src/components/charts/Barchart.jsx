@@ -1,20 +1,14 @@
-import { publicRequest } from '../../utils/requestMethods';
-import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
 
-export default function Barchart({ id, startDate, endDate }) {
+export default function Barchart({ data, isLoading }) {
 
-  const { isLoading, data } = useQuery({
-    queryKey: ["sales", id, startDate, endDate],
-    queryFn: () =>
-      publicRequest.get(`/sales/${id}/daily?start=${startDate}&end=${endDate}`).then((res) => {
-        return res.data;
-      }),
-    onError: (err) => {
-      console.log("Error: ", err)
-    }
-  });
+  if (isLoading) {
+    return "Loading Sales ...";
+  }
+
+  if (data.length === 0) {
+    return <p>Sotuvlar mavjud emas</p>
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
