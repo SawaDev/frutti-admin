@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from "react-router-dom";
+import ReactLoading from "react-loading"
 
 import { userRequest } from '../utils/requestMethods';
 import './style.css'
@@ -8,20 +8,30 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
-
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleClick = async (e) => {
     e.preventDefault();
+    setLoading(true)
 
     try {
       const res = await userRequest.post("/auth/login", { username, password })
+
       localStorage.setItem("currentUser", JSON.stringify(res.data));
+
+      setLoading(false)
       window.location.reload();
     } catch (err) {
+      setLoading(false)
       setError(err?.response?.data.message)
     }
   }
+
+  if (loading) return (
+    <div className='text-purple-500 h-screen w-full grid place-items-center'>
+      <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+    </div>
+  );
 
   return (
     <div className='login'>

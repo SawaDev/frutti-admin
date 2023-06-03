@@ -6,6 +6,7 @@ import Widget from '../components/Widget'
 import { publicRequest } from '../utils/requestMethods'
 import getCurrentUser from '../utils/getCurrentUser'
 import Exchange from '../components/charts/Exchange'
+import ReactLoading from "react-loading"
 
 const Home = () => {
   const stats = {
@@ -26,7 +27,11 @@ const Home = () => {
   return (
     <>
       {
-        isLoading ? "Loading.." : (
+        isLoading ? (
+          <div className='text-purple-500 h-screen w-full grid place-items-center'>
+            <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+          </div>
+        ) : (
           <div className="flex relative">
             <div className="bg-main-bg min-h-screen w-full">
               <div className="fixed z-1 bg-main-bg navbar w-full">
@@ -49,18 +54,7 @@ const Home = () => {
                   <Widget type="earning" stats={data?.monthlyEarnings} />
                 </div>
               </div>
-              {/* <div className='relative'>
-                <div className='absolute top-0 -left-10 sm:left-0 w-full'> */}
-
-              <Exchange />
-              {/* </div>
-              </div> */}
-              {/* <div action="" className="addForm mt-10 bg-green-100 p-2 flex gap-2">
-          <input onChange={handleChange} type="text" id="name" placeholder="name" />
-          <input onChange={handleChange} type="number" id="price" placeholder="price" />
-          <input onChange={handleChange} type="number" id="soni" placeholder="soni" />
-          <button disabled={createPostMutation.isLoading} onClick={handleSubmit}>{createPostMutation.isLoading ? "Loading..." : "Create"}</button>
-        </div> */}
+              <Exchange /> 
             </div>
           </div>
         )

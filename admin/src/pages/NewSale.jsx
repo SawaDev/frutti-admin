@@ -140,7 +140,8 @@ const NewSale = () => {
       setLoading(false)
       navigate("/clients");
     } catch (err) {
-      alert(err);
+      setLoading(false)
+      // alert(err);
     }
   };
 

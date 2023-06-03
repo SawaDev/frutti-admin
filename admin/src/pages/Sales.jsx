@@ -2,8 +2,9 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { Table } from 'antd'
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import Navbar from '../components/Navbar'
 import { publicRequest, userRequest } from '../utils/requestMethods'
+import ReactLoading from "react-loading"
+import Navbar from '../components/Navbar'
 
 const Sales = () => {
   const location = useLocation()
@@ -93,7 +94,11 @@ const Sales = () => {
     }
   ]
 
-  if (clientsQuery.isLoading) return <p>Loading...</p>
+  if (clientsQuery.isLoading) return (
+    <div className='text-purple-500 h-screen w-full grid place-items-center'>
+      <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+    </div>
+  );
 
   if (salesQuery.error) return <p>Serverda xatolik</p>
 
@@ -134,7 +139,11 @@ const Sales = () => {
         </div>
 
         {salesQuery.isLoading
-          ? "Loading..."
+          ? (
+            <div className='text-purple-500 h-screen w-full grid place-items-center'>
+              <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+            </div>
+          )
           : (
             <>
               {

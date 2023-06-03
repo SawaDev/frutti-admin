@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useLocation } from "react-router-dom"
 import { useQueries } from '@tanstack/react-query'
 import { Table } from "antd"
+import ReactLoading from "react-loading"
 
 import { publicRequest } from '../utils/requestMethods'
 import Navbar from '../components/Navbar'
@@ -94,7 +95,11 @@ const SingleProduct = () => {
           <div className="fixed bg-main-bg navbar w-full">
             <Navbar />
           </div>
-          {product.isLoading ? "Loading..." : (
+          {product.isLoading ? (
+            <div className='text-purple-500 h-screen w-full grid place-items-center'>
+              <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+            </div>
+          ) : (
             <>
               <div className="grid lg:grid-cols-2 grid-rows-2 lg:grid-rows-1 h-fit w-full gap-8 px-3 mb-4 mt-20 md:mt-24">
                 <div className="shadow-lg p-5 relative">
