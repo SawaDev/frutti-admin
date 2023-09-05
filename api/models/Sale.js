@@ -35,7 +35,11 @@ const ProductSalesSchema = new mongoose.Schema(
     status: {
       type: String,
       default: 'Kutilmoqda'
-    }
+    },
+    discount: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

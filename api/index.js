@@ -8,12 +8,14 @@ import usersRoute from "./routes/users.js"
 import productsRoute from "./routes/products.js"
 import salesRoute from "./routes/sales.js"
 import clientsRoute from "./routes/clients.js"
+import expensesRoute from "./routes/expenses.js"
+import transactionsRoute from "./routes/transactions.js"
+import cardsRoute from "./routes/cards.js"
 import TelegramBot from "node-telegram-bot-api";
 import Client from "./models/Client.js";
 import Product from "./models/Product.js";
 import Sale from "./models/Sale.js";
 import { verifyToken } from "./utils/verifyToken.js";
-import path from "path";
 
 const app = express();
 dotenv.config();
@@ -40,6 +42,9 @@ app.use("/api/users", usersRoute);
 app.use("/api/products", productsRoute);
 app.use("/api/sales", salesRoute);
 app.use("/api/clients", clientsRoute);
+app.use("/api/expenses", expensesRoute);
+app.use("/api/transactions", transactionsRoute);
+app.use("/api/cards", cardsRoute);
 
 const port = process.env.port || 8801;
 
@@ -124,7 +129,8 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
     const newSale = new Sale({
       clientId: new mongoose.Types.ObjectId(clientId),
       products: productsToSell,
-      payment: req.body.payment
+      payment: req.body.payment,
+      discount: req.body.discount
     });
 
     for (const product of productsToSell) {

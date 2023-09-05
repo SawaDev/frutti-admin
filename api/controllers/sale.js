@@ -28,18 +28,23 @@ export const newCollection = async (req, res, next) => {
 
 export const getSales = async (req, res, next) => {
   try {
-    const { date, clientId } = req.query
+    const { date, endDate, clientId, type } = req.query
 
     const match = {}
-    if (date !== '') {
-      match.createdAtDate = date;
+
+    if (date !== '' && endDate !== '') {
+      match.createdAtDate = { $gte: date, $lte: endDate };
+    } else if (endDate !== '') {
+      match.createdAtDate = { $lte: endDate };
+    } else if (date !== '') {
+      match.createdAtDate = { $gte: date };
     }
 
     if (clientId !== 'null') {
       match.clientId = new mongoose.Types.ObjectId(clientId);
     }
 
-    const sales = await Sale.aggregate([
+    const notGroupedAggr = [
       {
         $addFields: {
           createdAtDate: {
@@ -65,7 +70,8 @@ export const getSales = async (req, res, next) => {
           status: "$status",
           payment: "$payment",
           products: 1,
-          createdAtDate: 1
+          createdAtDate: 1,
+          createdAt: 1,
         }
       },
       {
@@ -94,9 +100,10 @@ export const getSales = async (req, res, next) => {
           priceOfProduct: 1,
           products: 1,
           createdAtDate: 1,
+          createdAt: 1,
           payment: 1,
           status: 1,
-          clientName: "$client.name"
+          client: 1,
         }
       },
       {
@@ -130,8 +137,11 @@ export const getSales = async (req, res, next) => {
           createdAtDate: {
             $first: "$createdAtDate"
           },
-          clientName: {
-            $first: "$clientName"
+          createdAt: {
+            $first: "$createdAt"
+          },
+          client: {
+            $first: "$client"
           },
           summa: {
             $sum: "$summa"
@@ -146,7 +156,7 @@ export const getSales = async (req, res, next) => {
           _id: "$createdAtDate",
           sales: {
             $push: "$$ROOT"
-          }
+          },
         }
       },
       {
@@ -159,7 +169,132 @@ export const getSales = async (req, res, next) => {
       {
         $sort: { createdAtDate: -1 }
       }
-    ]);
+    ]
+
+    const groupedAggr = [
+      {
+        $addFields: {
+          createdAtDate: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt'
+            }
+          }
+        }
+      },
+      {
+        $match: match,
+      },
+      {
+        $unwind: "$products"
+      },
+      {
+        $group: {
+          _id: {
+            createdAtDate: "$createdAtDate",
+            productId: "$products.productId",
+            clientId: "$clientId",
+          },
+          ketdi: {
+            $sum: "$products.ketdi"
+          },
+          summa: {
+            $sum: {
+              $multiply: ['$products.ketdi', '$products.priceOfProduct']
+            }
+          },
+          payment: {
+            $first: "$payment"
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id.productId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $unwind: "$product"
+      },
+      {
+        $group: {
+          _id: {
+            createdAtDate: "$_id.createdAtDate",
+            clientId: "$_id.clientId"
+          },
+          sumKetdi: {
+            $sum: "$ketdi"
+          },
+          overallSumma: {
+            $sum: "$summa"
+          },
+          products: {
+            $push: "$$ROOT"
+          },
+          payment: {
+            $first: "$payment"
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: '_id.clientId',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: "$client" },
+      {
+        $group: {
+          _id: "$_id.createdAtDate",
+          sumKetdi: {
+            $sum: "$sumKetdi"
+          },
+          summa: {
+            $sum: "$overallSumma"
+          },
+          clients: {
+            $push: "$$ROOT"
+          }
+        }
+      },
+      {
+        $addFields: {
+          createdAtDate: "$_id"
+        }
+      },
+      { $sort: { createdAtDate: -1 } },
+    ]
+
+    const aggr = type === "notgrouped" ? notGroupedAggr : groupedAggr
+
+    const sales = await Sale.aggregate(aggr);
+
+    if (type === "notgrouped") {
+      const clientSalesSum = {}
+      sales.forEach((date) => {
+        date.sales.sort((a, b) => b.createdAt - a.createdAt).forEach((sale) => {
+          const client = sale.client;
+          const payment = sale.payment;
+          const summa = sale.summa;
+
+          if (!clientSalesSum.hasOwnProperty(client._id)) {
+            clientSalesSum[client._id] = client.cash;
+          }
+
+          const cashAfter = clientSalesSum[client._id]
+          clientSalesSum[client._id] = cashAfter - payment + summa;
+          const cashBefore = clientSalesSum[client._id]
+
+          sale.cashAfter = cashAfter;
+          sale.cashBefore = cashBefore;
+        })
+      })
+    }
 
     res.json(sales);
   } catch (err) {
@@ -169,98 +304,165 @@ export const getSales = async (req, res, next) => {
 
 export const getSalesByClient = async (req, res, next) => {
   const clientId = req.params.clientId;
-  const day = req.query.day;
+
+  const client = await Client.findById(clientId);
+
+  const { startDay, endDay } = req.query;
+
+  // aggregation for getting sales by client in each day
+  const aggr = [
+    {
+      $match: {
+        clientId: new mongoose.Types.ObjectId(clientId),
+        $and: [
+          {
+            $expr: {
+              $cond: {
+                if: { $eq: [startDay, ''] },
+                then: true,
+                else: { $gte: [{ $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, startDay] }
+              }
+            },
+          },
+          {
+            $expr: {
+              $cond: {
+                if: { $eq: [endDay, ''] },
+                then: true,
+                else: { $lte: [{ $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, endDay] }
+              }
+            },
+          }
+        ]
+      }
+    },
+    {
+      $unwind: "$products"
+    },
+    {
+      $project: {
+        _id: 1,
+        ketdi: "$products.ketdi",
+        priceOfProduct: "$products.priceOfProduct",
+        status: "$status",
+        payment: "$payment",
+        discount: 1,
+        products: 1,
+        createdAt: 1,
+        createdAtDate: {
+          $dateToString: {
+            format: '%Y-%m-%d',
+            date: '$createdAt'
+          }
+        },
+      }
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "products.productId",
+        foreignField: "_id",
+        as: "products"
+      }
+    },
+    {
+      $unwind: "$products"
+    },
+    {
+      $addFields: {
+        "products.ketdi": "$ketdi",
+        "products.priceOfProduct": "$priceOfProduct"
+      }
+    },
+    {
+      $group: {
+        _id: "$_id",
+        products: {
+          $addToSet: "$products"
+        },
+        sumKetdi: {
+          $sum: "$products.ketdi"
+        },
+        summa: {
+          $sum: {
+            $multiply: ["$products.priceOfProduct", "$products.ketdi"]
+          }
+        },
+        payment: {
+          $first: "$payment"
+        },
+        status: {
+          $first: "$status"
+        },
+        discount: {
+          $first: "$discount"
+        },
+        createdAt: {
+          $first: "$createdAt"
+        },
+        createdAtDate: {
+          $first: "$createdAtDate"
+        },
+      }
+    },
+    {
+      $group: {
+        _id: "$createdAtDate",
+        sales: {
+          $push: "$$ROOT"
+        },
+        summa: {
+          $sum: "$summa"
+        },
+        sumKetdi: {
+          $sum: "$sumKetdi"
+        },
+        payment: {
+          $sum: "$payment"
+        }
+      }
+    },
+    {
+      $sort: { _id: -1 }
+    }
+  ]
 
   try {
-    const sales = await Sale.aggregate([
-      {
-        $match: {
-          clientId: new mongoose.Types.ObjectId(clientId),
-          $expr: {
-            $cond: {
-              if: { $eq: [day, ''] },
-              then: true,
-              else: { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, day] }
+    const sales = await Sale.aggregate(aggr);
 
-            }
-          },
-        }
-      },
-      {
-        $unwind: "$products"
-      },
-      {
-        $project: {
-          _id: 1,
-          ketdi: "$products.ketdi",
-          status: "$status",
-          payment: "$payment",
-          products: 1,
-          createdAt: {
-            $dateToString: {
-              format: '%Y-%m-%d',
-              date: '$createdAt'
-            }
-          },
-        }
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "products.productId",
-          foreignField: "_id",
-          as: "products"
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          ketdi: 1,
-          products: 1,
-          createdAt: 1,
-          payment: 1,
-          status: 1
-        }
-      },
-      {
-        $unwind: "$products"
-      },
-      {
-        $addFields: {
-          "products.ketdi": "$ketdi"
-        }
-      },
-      {
-        $group: {
-          _id: "$_id",
-          products: {
-            $addToSet: "$products"
-          },
-          payment: {
-            $first: "$payment"
-          },
-          status: {
-            $first: "$status"
-          },
-          createdAt: {
-            $first: "$createdAt"
-          }
-        }
-      },
-      {
-        $group: {
-          _id: "$createdAt",
-          sales: {
-            $push: "$$ROOT"
-          }
-        }
-      },
-      {
-        $sort: { _id: -1 }
-      }
-    ]);
+    let clientSalesSum = {};
+    let total = {
+      totalPayment: 0,
+      totalSumma: 0,
+      totalKetdi: 0,
+    };
+    sales.forEach((date) => {
+      date.sales.sort((a, b) => b.createdAt - a.createdAt).forEach((sale) => {
+        const payment = sale.payment;
+        const summa = sale.summa;
 
-    res.json(sales);
+        if (!clientSalesSum.hasOwnProperty(client._id)) {
+          clientSalesSum[client._id] = client.cash;
+        }
+
+        const cashAfter = clientSalesSum[client._id]
+        clientSalesSum[client._id] = cashAfter - payment + summa;
+        const cashBefore = clientSalesSum[client._id]
+
+        sale.cashAfter = cashAfter;
+        sale.cashBefore = cashBefore;
+      })
+      total.totalPayment += date.payment
+      total.totalSumma += date.summa
+      total.totalKetdi += date.sumKetdi
+    })
+
+    const result = {
+      data: sales,
+      ...total
+    }
+
+    res.json(result);
   } catch (err) {
     next(err);
   }

@@ -60,7 +60,7 @@ export const getClients = async (req, res, next) => {
 
 export const getMontlySalesOfClients = async (req, res, next) => {
   try {
-    const { id, productId } = req.query;
+    const { id, filter } = req.query;
 
     const date = new Date();
     const lastYear = new Date(new Date().setFullYear(date.getFullYear() - 1));
@@ -74,7 +74,7 @@ export const getMontlySalesOfClients = async (req, res, next) => {
       match.clientId = { $exists: true }
     }
 
-    const data = await Sale.aggregate([
+    const aggregationByMonth = [
       {
         $match: match,
       },
@@ -142,9 +142,173 @@ export const getMontlySalesOfClients = async (req, res, next) => {
           products: 1,
         }
       }
-    ])
+    ]
 
-    const stat = await Sale.aggregate([
+    const aggregationByHalfOfMonth = [
+      {
+        $match: match,
+      },
+      {
+        $addFields: {
+          startMonth: {
+            $cond: [
+              { $gte: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $month: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 1] },
+                  12,
+                  { $add: [{ $month: "$createdAt" }, -1] }
+                ]
+              }
+            ]
+          },
+          startYear: {
+            $cond: [
+              { $gte: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $year: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 1] },
+                  { $add: [{ $year: "$createdAt" }, -1] },
+                  { $year: "$createdAt" }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          nextMonth: {
+            $cond: [
+              { $lt: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $month: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 12] },
+                  1,
+                  { $add: [{ $month: "$createdAt" }, 1] }
+                ]
+              }
+            ]
+          },
+          nextYear: {
+            $cond: [
+              { $lt: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $year: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 12] },
+                  { $add: [{ $year: "$createdAt" }, 1] },
+                  { $year: "$createdAt" },
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          startDate: {
+            $dateFromParts: {
+              year: "$startYear",
+              month: "$startMonth",
+              day: 15
+            }
+          },
+          endDate: {
+            $dateFromParts: {
+              year: "$nextYear",
+              month: "$nextMonth",
+              day: 15
+            }
+          }
+        }
+      },
+      {
+        $unwind: "$products"
+      },
+      {
+        $project: {
+          _id: 1,
+          clientId: 1,
+          productId: "$products.productId",
+          cost: { $multiply: ["$products.ketdi", "$products.priceOfProduct"] },
+          ketdi: "$products.ketdi",
+          startDate: 1,
+          endDate: 1,
+          startMonth: 1,
+          nextMonth: 1,
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $unwind: "$product"
+      },
+      {
+        $group: {
+          _id: {
+            productId: "$productId",
+            startDate: "$startDate",
+            endDate: "$endDate",
+            startMonth: "$startMonth",
+            nextMonth: "$nextMonth"
+          },
+          monthlyKetdi: { $sum: "$ketdi" },
+          monthlyCost: { $sum: "$cost" },
+          product: {
+            $first: "$product"
+          }
+        },
+      },
+      {
+        $project: {
+          _id: {
+            startDate: "$_id.startDate",
+            endDate: "$_id.endDate",
+            startMonth: "$_id.startMonth",
+            nextMonth: "$_id.nextMonth"
+          },
+          productId: "$_id.productId",
+          monthlyKetdi: 1,
+          monthlyCost: 1,
+          product: 1,
+        }
+      },
+      {
+        $group: {
+          _id: {
+            startDate: "$_id.startDate",
+            endDate: "$_id.endDate",
+            startMonth: "$_id.startMonth",
+            nextMonth: "$_id.nextMonth"
+          },
+          products: {
+            $push: "$$ROOT"
+          },
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          summa: { $sum: "$products.monthlyCost" },
+          sumSoni: { $sum: "$products.monthlyKetdi" },
+          products: 1,
+        }
+      }
+    ]
+
+    const data = await Sale.aggregate(filter === "byMonth" ? aggregationByMonth : aggregationByHalfOfMonth)
+
+    const statAggregationByMonth = [
       {
         $match: match
       },
@@ -161,18 +325,132 @@ export const getMontlySalesOfClients = async (req, res, next) => {
           payment: { $sum: "$payment" },
         }
       }
-    ])
+    ]
+
+    const statAggregationByHalfMonth = [
+      {
+        $match: match
+      },
+      {
+        $addFields: {
+          startMonth: {
+            $cond: [
+              { $gte: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $month: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 1] },
+                  12,
+                  { $add: [{ $month: "$createdAt" }, -1] }
+                ]
+              }
+            ]
+          },
+          startYear: {
+            $cond: [
+              { $gte: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $year: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 1] },
+                  { $add: [{ $year: "$createdAt" }, -1] },
+                  { $year: "$createdAt" }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          nextMonth: {
+            $cond: [
+              { $lt: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $month: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 12] },
+                  1,
+                  { $add: [{ $month: "$createdAt" }, 1] }
+                ]
+              }
+            ]
+          },
+          nextYear: {
+            $cond: [
+              { $lt: [{ $dayOfMonth: "$createdAt" }, 15] },
+              { $year: "$createdAt" },
+              {
+                $cond: [
+                  { $eq: [{ $month: "$createdAt" }, 12] },
+                  { $add: [{ $year: "$createdAt" }, 1] },
+                  { $year: "$createdAt" },
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          startDate: {
+            $dateFromParts: {
+              year: "$startYear",
+              month: "$startMonth",
+              day: 15
+            }
+          },
+          endDate: {
+            $dateFromParts: {
+              year: "$nextYear",
+              month: "$nextMonth",
+              day: 15
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          payment: "$payment",
+          startDate: "$startDate",
+          endDate: "$endDate",
+        }
+      },
+      {
+        $group: {
+          _id: {
+            startDate: "$startDate",
+            endDate: "$endDate"
+          },
+          payment: { $sum: "$payment" },
+        }
+      }
+    ]
+
+    const stat = await Sale.aggregate(filter === "byMonth" ? statAggregationByMonth : statAggregationByHalfMonth)
 
     const mergedData = data.map((d) => {
-      const paymentObject = stat.find(s => s._id === d._id);
-      if (paymentObject) {
-        return { ...d, payment: paymentObject.payment }
+      if (filter === "byMonth") {
+        const paymentObject = stat.find(s => s._id === d._id);
+        if (paymentObject) {
+          return { ...d, payment: paymentObject.payment }
+        }
+        return d;
       }
-
-      return d;
+      if (filter === "byHalfMonth") {
+        const paymentObject = stat.find(s => s._id.startDate.toISOString() === d._id.startDate.toISOString());
+        if (paymentObject) {
+          return { ...d, payment: paymentObject.payment }
+        }
+        return d;
+      }
     })
 
-    res.status(200).json(mergedData)
+    res.status(200).json(
+      filter === "byMonth" ?
+        mergedData :
+        mergedData.sort((a, b) => b._id.startMonth - a._id.startMonth)
+    )
   } catch (err) {
     next(err);
   }
