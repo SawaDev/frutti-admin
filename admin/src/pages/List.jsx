@@ -6,6 +6,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Navbar from "../components/Navbar"
 import { publicRequest, userRequest } from "../utils/requestMethods"
 import "./style.css"
+import dateFormat from '../utils/functions';
 
 const EditableCell = ({
   editing,
@@ -39,17 +40,6 @@ const EditableCell = ({
       )}
     </td>
   );
-};
-
-const rowSelection = {
-  onChange: (selectedRowKeys, selectedRows) => {
-    console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-  },
-  getCheckboxProps: (record) => ({
-    disabled: record.name === 'Disabled User',
-
-    name: record.name,
-  }),
 };
 
 const List = () => {
@@ -125,7 +115,6 @@ const List = () => {
       title: 'soni',
       dataIndex: 'soni',
       width: '25%',
-      // editable: true,
     },
     {
       title: 'price',
@@ -134,31 +123,31 @@ const List = () => {
       editable: true,
     },
     {
-      // title: 'operations',
+      title: 'operations',
       dataIndex: 'operations',
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
-          <span>
+          <div>
             <Typography.Link onClick={() => saveP(record._id)} style={{ marginRight: 8 }}>
-              Save
+              Saqlash
             </Typography.Link>
-            <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <a>Cancel</a>
+            <Popconfirm title="Bekor qilasizmi?" onConfirm={cancel}>
+              <a>Bekor qilish</a>
             </Popconfirm>
-          </span>
+          </div>
         ) : (
           <div className='flex flex-wrap gap-2'>
             <Typography.Link disabled={editingKey !== ''} className="p-1 px-2 rounded-lg border-blue-400 border-[1px] " onClick={() => edit(record)}>
-              Edit
+              O'zgartirish
             </Typography.Link>
 
             <Typography.Link disabled={editingKey !== ''} className="p-1 px-2 rounded-lg border-green-400 border-[1px] text-green-500" onClick={() => navigate(`/products/${record._id}`)}>
-              View
+              Ko'proq
             </Typography.Link>
 
             <Typography.Link disabled={editingKey !== '' || mutation.isLoading} className="p-1 px-2 rounded-lg border-red-400 border-[1px] text-red-500" onClick={() => handleDelete(record._id)}>
-              Delete
+              O'chirish
             </Typography.Link>
           </div>
         );
@@ -211,26 +200,81 @@ const List = () => {
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
-          <span className='flex flex-col sm:flex-row'>
+          <div className='flex flex-col sm:flex-row'>
             <Typography.Link onClick={() => saveP(record._id)} style={{ marginRight: 8 }}>
-              Save
+              Saqlash
             </Typography.Link>
-            <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <a>Cancel</a>
+            <Popconfirm title="Bekor qilasizmi?" onConfirm={cancel}>
+              <a>Bekor qilish</a>
             </Popconfirm>
-          </span>
+          </div>
         ) : (
           <div className='flex flex-wrap gap-2'>
             <Typography.Link disabled={editingKey !== ''} className="p-1 px-2 rounded-lg border-blue-400 border-[1px]" onClick={() => edit(record)}>
-              Edit
+              O'zgartirish
             </Typography.Link>
 
             <Typography.Link disabled={editingKey !== ''} className="p-1 px-2 rounded-lg border-green-400 border-[1px] text-green-500" onClick={() => navigate(`/${path}/${record._id}`)}>
-              View
+              Ko'proq
             </Typography.Link>
 
             <Typography.Link disabled={editingKey !== '' || mutation.isLoading} className="p-1 px-2 rounded-lg border-red-400 border-[1px] text-red-500" onClick={() => handleDelete(record._id)}>
-              Delete
+              O'chirish
+            </Typography.Link>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const expensesColumn = [
+    {
+      title: 'Summa',
+      dataIndex: 'cost',
+      width: 120,
+      editable: true,
+      render: (_, record) => (
+        <span>{parseInt(record.cost).toLocaleString("fr-fr")}</span>
+      )
+    },
+    {
+      title: 'Sabab',
+      dataIndex: 'description',
+      width: 240,
+      editable: true,
+    },
+    {
+      title: 'Sana',
+      dataIndex: 'createdAt',
+      width: 120,
+      editable: true,
+      render: (_, record) => (
+        <span>{dateFormat(record.createdAt, 'dd-MM-yyyy')}</span>
+      )
+    },
+    {
+      title: 'operations',
+      dataIndex: 'operations',
+      width: 250,
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <div className='flex flex-col sm:flex-row'>
+            <Typography.Link onClick={() => saveP(record._id)} style={{ marginRight: 8 }}>
+              Saqlash
+            </Typography.Link>
+            <Popconfirm title="Bekor qilasizmi?" onConfirm={cancel}>
+              <a>Bekor qilish</a>
+            </Popconfirm>
+          </div>
+        ) : (
+          <div className='flex flex-wrap gap-2'>
+            <Typography.Link disabled={editingKey !== ''} className="p-1 px-2 rounded-lg border-blue-400 border-[1px]" onClick={() => edit(record)}>
+              O'zgartirish
+            </Typography.Link>
+
+            <Typography.Link disabled={editingKey !== '' || mutation.isLoading} className="p-1 px-2 rounded-lg border-red-400 border-[1px] text-red-500" onClick={() => handleDelete(record._id)}>
+              O'chirish
             </Typography.Link>
           </div>
         );
@@ -270,6 +314,22 @@ const List = () => {
     };
   });
 
+  const mergedExpensesColumns = expensesColumn.map((col) => {
+    if (!col.editable) {
+      return col;
+    }
+    return {
+      ...col,
+      onCell: (record) => ({
+        record,
+        inputType: col.dataIndex === 'cost' ? 'number' : 'text',
+        dataIndex: col.dataIndex,
+        title: col.title,
+        editing: isEditing(record),
+      }),
+    };
+  });
+
   return (
     <div className="">
       <div className="fixed bg-main-bg navbar w-full">
@@ -294,7 +354,7 @@ const List = () => {
               }}
               bordered
               dataSource={data}
-              columns={path === "clients" ? mergedClientsColumns : mergedProductsColumns}
+              columns={path === "clients" ? mergedClientsColumns : path === 'products' ? mergedProductsColumns : mergedExpensesColumns}
               rowClassName="editable-row"
               pagination={false}
               scroll={{

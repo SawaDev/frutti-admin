@@ -3,13 +3,15 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import { publicRequest, userRequest } from '../utils/requestMethods';
-import { InputNumber, Table } from 'antd';
+import { InputNumber, Table, Radio } from 'antd';
 import ReactLoading from 'react-loading';
 
 const NewSale = () => {
   const [newQuantities, setNewQuantities] = useState({});
   const [newPrice, setNewPrice] = useState({});
-  const [info, setInfo] = useState({})
+  const [info, setInfo] = useState({
+    payment: 0
+  })
   const [clientId, setClientId] = useState(null);
   const [loading, setLoading] = useState(false)
 
@@ -29,10 +31,18 @@ const NewSale = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setInfo({
-      ...info,
-      [e.target.name]: e.target.value,
-    })
+    if (e.target.name === "payment") {
+      const numericValue = e.target.value.replace(/\D/g, '');
+      setInfo({
+        ...info,
+        payment: Number(numericValue)
+      })
+    } else {
+      setInfo({
+        ...info,
+        [e.target.name]: e.target.value,
+      })
+    }
   }
 
   function handleClientChange(event) {
@@ -113,7 +123,6 @@ const NewSale = () => {
 
         return { productId: item1.productId, ketdi: item1.ketdi, priceOfProduct: item1.price }
       })
-      console.log(mergedArray)
 
       const sale = {
         ...info,
@@ -121,6 +130,8 @@ const NewSale = () => {
         products: mergedArray,
         status: "Kutilmoqda"
       };
+
+      console.log(sale)
 
       if (!clientId) {
         alert("Xaridorni kiriting!");
@@ -141,7 +152,6 @@ const NewSale = () => {
       navigate("/clients");
     } catch (err) {
       setLoading(false)
-      // alert(err);
     }
   };
 
@@ -218,15 +228,27 @@ const NewSale = () => {
               <option key={client._id} value={client?.name} />
             ))}
           </datalist>
-          <label className="text-lg font-semibold mt-5 mb-2">To'lovni kiriting: </label>
-          <input
-            placeholder="Payment"
-            name="payment"
-            onChange={handleChange}
-            defaultValue={0}
-            type="number"
-            className="p-3 border-gray-500 border-1 outline-none rounded-lg min-w-[320px] "
-          />
+          <div className='grid grid-cols-2 gap-8 mt-5 mb-2'>
+            <div className='flex flex-col gap-2'>
+              <label className="text-lg font-semibold">To'lovni kiriting: </label>
+              <input
+                placeholder="Payment"
+                name="payment"
+                onChange={handleChange}
+                value={parseInt(info["payment"]).toLocaleString('fr-FR')}
+                type="text"
+                className="p-3 border-gray-500 border-1 outline-none rounded-lg min-w-[320px] "
+              />
+            </div>
+            <div className='flex flex-col w-full gap-2'>
+              <label className="text-lg font-semibold">Skidkami: </label>
+              <Radio.Group onChange={handleChange} name="discount" defaultValue={false} buttonStyle="solid">
+                <Radio.Button value={true}>Ha</Radio.Button>
+                <Radio.Button value={false}>Yo'q</Radio.Button>
+              </Radio.Group>
+
+            </div>
+          </div>
         </div>
         <div className='mt-8 px-5 bg-white'>
           <span className='text-xl'>Mahsulotlar: </span>
@@ -243,7 +265,7 @@ const NewSale = () => {
             onClick={handleSave}
             disabled={createSaleMutation.isLoading}
           >
-            Save
+            Saqlash
           </button>
         </div>
       </div>

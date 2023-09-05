@@ -1,16 +1,12 @@
+import { useRef } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import CalculateIcon from '@mui/icons-material/Calculate';
 import InsertChartIcon from "@mui/icons-material/InsertChart";
-import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import SettingsSystemDaydreamOutlinedIcon from "@mui/icons-material/SettingsSystemDaydreamOutlined";
-import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import { useClickAway } from 'react-use';
 
 import { Link } from "react-router-dom";
 
@@ -26,11 +22,16 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
     window.location.reload();
   }
 
+  const ref = useRef(null);
+  useClickAway(ref, () => {
+    setToggleMenu(false);
+  });
+
   const linkClass = 'flex gap-1 pt-3 pb-2.5 rounded-lg text-md text-gray-700 hover:bg-light-gray m-2'
   return (
     <div className="pl-3 w-72 h-screen fixed bg-gray-100 z-9999 md:overflow-hidden overflow-auto md:hover:overflow-auto pb-10">
       {toggleMenu && (
-        <>
+        <div ref={ref}>
           <div className="absolute cursor-pointer right-3 top-3 text-xl text-purple-600" onClick={handleMenu}>
             <CloseIcon />
           </div>
@@ -42,13 +43,13 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
           <hr />
           <div className="mt-6">
             <ul>
-              <p className="text-gray-400 m-2 mt-3 uppercase">MAIN</p>
+              <p className="text-gray-400 m-2 mt-3 uppercase">ASOSIY</p>
               <Link to="/" onClick={handleMenu}>
                 <li className={linkClass}>
                   <div>
                     <DashboardIcon className="text-xl text-purple-500" />
                   </div>
-                  <span className="text-xl text-purple-500">Dashboard</span>
+                  <span className="text-xl text-purple-500">Asosiy oyna</span>
                 </li>
               </Link>
               <Link to="/newsale" onClick={handleMenu}>
@@ -67,7 +68,7 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
                   <span className="text-xl text-purple-500">Yangi Mol</span>
                 </li>
               </Link>
-              <p className="text-gray-400 m-2 mt-3 uppercase">LISTS</p>
+              <p className="text-gray-400 m-2 mt-3 uppercase">LISTLAR</p>
               <Link to="/products">
                 <li className={linkClass} onClick={() => setToggleMenu(!toggleMenu)}>
                   <div>
@@ -92,12 +93,28 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
                   <span className="text-xl text-purple-500 mb-2 cursor-pointer">Sotuvlar</span>
                 </li>
               </Link>
+              <Link to="/expenses">
+                <li className={linkClass}>
+                  <div>
+                    <InsertChartIcon className="text-xl text-purple-500" />
+                  </div>
+                  <span className="text-xl text-purple-500 mb-2 cursor-pointer">Harajatlar</span>
+                </li>
+              </Link>
               <Link to="/stats">
                 <li className={linkClass}>
                   <div>
                     <InsertChartIcon className="text-xl text-purple-500" />
                   </div>
                   <span className="text-xl text-purple-500 mb-2 cursor-pointer">Statistika</span>
+                </li>
+              </Link>
+              <Link to="/transactions">
+                <li className={linkClass}>
+                  <div>
+                    <InsertChartIcon className="text-xl text-purple-500" />
+                  </div>
+                  <span className="text-xl text-purple-500 mb-2 cursor-pointer">To'lovlar</span>
                 </li>
               </Link>
               {/* <p className="text-gray-400 m-2 mt-3 uppercase">USEFUL</p>
@@ -147,7 +164,7 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
               </li>
             </ul>
           </div>
-        </>)}
+        </div>)}
 
     </div>
   );

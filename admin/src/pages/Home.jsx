@@ -54,7 +54,7 @@ const Home = () => {
                   <Widget type="earning" stats={data?.monthlyEarnings} />
                 </div>
               </div>
-              <Exchange /> 
+              <Exchange />
             </div>
           </div>
         )

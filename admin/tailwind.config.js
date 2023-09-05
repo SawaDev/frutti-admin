@@ -43,6 +43,9 @@ module.exports = {
         'hero-pattern':
           "url('https://i.ibb.co/MkvLDfb/Rectangle-4389.png')",
       },
+      dropShadow: {
+        'custom': '0px 0px 23px 5px rgba(0,0,0,0.2)',
+      }
     },
   },
   plugins: [],

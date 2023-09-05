@@ -7,6 +7,7 @@ import ReactLoading from "react-loading"
 import { publicRequest } from '../utils/requestMethods'
 import Navbar from '../components/Navbar'
 import Barchart from '../components/charts/Barchart'
+import EChartsDynamic from '../components/charts/BarchartEcharts'
 
 const SingleProduct = () => {
   const location = useLocation();
@@ -87,6 +88,19 @@ const SingleProduct = () => {
       dataIndex: 'totalKeldi',
     },
   ]
+  console.log(sales?.data?.sales)
+
+  const xAxisData = sales?.data?.sales.map((d) => d._id)
+  const yAxisData = ['Keldi', "Ketdi", "Summa", "Foyda"];
+  const legendData = ['Keldi', "Ketdi", "Summa", "Foyda"];
+
+  const getPropertyData = (propertyNames) => {
+    return propertyNames.map(propertyName =>
+      sales?.data?.sales.map((d) => d[propertyName])
+    );
+  };
+
+  const seriesData = getPropertyData(['totalKeldi', 'totalKetdi', 'totalCost', 'totalProfit'])
 
   return (
     <>
@@ -101,11 +115,11 @@ const SingleProduct = () => {
             </div>
           ) : (
             <>
-              <div className="grid lg:grid-cols-2 grid-rows-2 lg:grid-rows-1 h-fit w-full gap-8 px-3 mb-4 mt-20 md:mt-24">
-                <div className="shadow-lg p-5 relative">
-                  <div className="text-purple-600 font-bold absolute t-0 l-0 p-1 pr-4 bg-purple-200 rounded rounded-br-2xl ">Info</div>
-                  <h1 className="text-center py-4 text-lg text-gray-600">Info</h1>
-                  <div className="flex flex-col gap-5 items-center text-center md:flex-row md:justify-around md:text-left">
+              <div className="grid lg:grid-cols-3 grid-rows-2 lg:grid-rows-1 h-fit w-full gap-8 px-3 mb-4 mt-20 md:mt-24">
+                <div className="shadow-lg p-5 relative col-span-1 flex flex-col items-center justify-center">
+                  {/* <div className="text-purple-600 font-bold absolute t-0 l-0 p-1 pr-4 bg-purple-200 rounded rounded-br-2xl ">Info</div> */}
+                  <h1 className="text-center py-4 text-2xl text-gray-700 font-semibold">Info</h1>
+                  <div className="flex flex-col gap-5 items-center justify-center text-center md:flex-row md:justify-around md:text-left">
                     <img
                       src={product.data?.img ? product.data.img : "https://us.123rf.com/450wm/mathier/mathier1905/mathier190500002/134557216-no-thumbnail-image-placeholder-for-forums-blogs-and-websites.jpg?ver=6"}
                       alt="no image"
@@ -134,8 +148,14 @@ const SingleProduct = () => {
                     </div>
                   </div>
                 </div>
-                <div className="shadow-lg  w-full">
-                  <Barchart data={sales?.data?.sales} isLoading={sales.isLoading} />
+                <div className="shadow-lg w-full col-span-2">
+                  <EChartsDynamic
+                    title="Mahsulot"
+                    xAxisData={xAxisData}
+                    yAxisData={yAxisData}
+                    legendData={legendData}
+                    seriesData={seriesData}
+                  />
                 </div>
               </div>
 
@@ -163,7 +183,6 @@ const SingleProduct = () => {
                 <Table
                   dataSource={sales?.data?.sales}
                   columns={column}
-                  pagination={true}
                 />
               </div>
             </>
