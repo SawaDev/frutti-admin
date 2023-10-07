@@ -10,7 +10,7 @@ export const verifyToken = (req, res, next) => {
       if (err) return next(createError(403, "Token is not valid!"));
       req.user = user;
 
-      if (req.user.isAdmin) {
+      if (req.user._doc.isAdmin) {
         return next();
       } else {
         return next(createError(401, "Sizda bunga ruxsat yo'q!"));

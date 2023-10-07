@@ -4,6 +4,7 @@ import { createError } from "../utils/error.js";
 import Expense from "../models/Expense.js";
 import Transaction from "../models/Transaction.js";
 import mongoose from "mongoose";
+import Client from "../models/Client.js";
 
 export const createProduct = async (req, res, next) => {
   try {
@@ -107,11 +108,11 @@ export const getStats = async (req, res, next) => {
 
     // Calculate monthly sale
     const sales = await Sale.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
-        }
-      },
+      // {
+      //   $match: {
+      //     createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
+      //   }
+      // },
       {
         $unwind: "$products"
       },
@@ -138,7 +139,12 @@ export const getStats = async (req, res, next) => {
             $sum: {
               $cond: [
                 { $eq: ["$products.priceOfProduct", null] },
-                { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                {
+                  $subtract: [
+                    { $multiply: ["$product.price", "$products.ketdi"] },
+                    { $multiply: ["$product.tanNarxi", "$products.ketdi"] },
+                  ]
+                },
                 {
                   $subtract: [
                     { $multiply: ["$products.priceOfProduct", "$products.ketdi"] },
@@ -153,11 +159,11 @@ export const getStats = async (req, res, next) => {
     ]);
 
     const expensesMonth = await Expense.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
-        }
-      },
+      // {
+      //   $match: {
+      //     createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
+      //   }
+      // },
       {
         $group: {
           _id: null,
@@ -189,7 +195,7 @@ export const getStats = async (req, res, next) => {
             {
               cardId: new mongoose.Types.ObjectId(process.env.CARD_ID)
             },
-            { createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } }
+            // { createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } }
           ]
         }
       },
@@ -203,9 +209,23 @@ export const getStats = async (req, res, next) => {
       }
     ])
 
+    const clientsCash = await Client.aggregate([
+      {
+        $group: {
+          _id: null,
+          cash: {
+            $sum: "$cash"
+          }
+        }
+      }
+    ]);
+
     const monthlyEarnings = (salesData.length ? salesData[0].monthlyEarnings : 0) + (paymentsToCard.length ? paymentsToCard[0].monthlyPayments : 0);
     const monthlySale = sales.length ? sales[0].monthlySale : 0;
-    const monthlyProfit = (sales.length ? sales[0].monthlyProfit : 0) - (expensesMonth.length ? expensesMonth[0].expensesCost : 0);
+    const monthlyProfit = ((sales.length ? sales[0].monthlyProfit : 0) - (expensesMonth.length ? expensesMonth[0].expensesCost : 0)) + clientsCash[0].cash ?? 0;
+    const monthlyExpensesCost = expensesMonth.length ? expensesMonth[0].expensesCost : 0;
+    const allExpensesCost = expensesAll.length ? expensesAll[0].expensesCost : 0;
+    const monthlyPayments = paymentsToCard.length ? paymentsToCard[0].monthlyPayments : 0;
 
     const warehouseInfo = {
       productsCount,
@@ -213,9 +233,9 @@ export const getStats = async (req, res, next) => {
       monthlyEarnings,
       monthlySale,
       monthlyProfit,
-      monthlyExpensesCost: expensesMonth.length ? expensesMonth[0].expensesCost : 0,
-      allExpensesCost: expensesAll.length ? expensesAll[0].expensesCost : 0,
-      monthlyPayments: paymentsToCard.length ? paymentsToCard[0].monthlyPayments : 0,
+      monthlyExpensesCost,
+      allExpensesCost,
+      monthlyPayments,
     };
 
     res.status(200).json(warehouseInfo);

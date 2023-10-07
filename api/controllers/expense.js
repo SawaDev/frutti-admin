@@ -1,9 +1,20 @@
 import Expense from "../models/Expense.js";
+import History from "../models/History.js";
 
 export const newExpense = async (req, res, next) => {
   try {
     const newExpense = new Expense(req.body);
     await newExpense.save();
+
+    const history = new History({
+      actionType: "expense",
+      action: "create",
+      actionDetails: {
+        ...newExpense,
+      }
+    })
+
+    await history.save();
 
     res.status(200).json(newExpense);
   } catch (err) {
@@ -18,6 +29,16 @@ export const updateExpense = async (req, res, next) => {
       { $set: req.body },
       { new: true }
     );
+
+    const history = new History({
+      actionType: "sale",
+      action: "update",
+      actionDetails: {
+        ...updatedExpense
+      }
+    })
+
+    await history.save();
 
     res.status(200).json(updatedExpense);
   } catch (err) {

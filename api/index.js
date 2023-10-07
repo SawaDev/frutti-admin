@@ -18,6 +18,7 @@ import Product from "./models/Product.js";
 import Sale from "./models/Sale.js";
 import { verifyToken } from "./utils/verifyToken.js";
 import axios from "axios";
+import History from "./models/History.js";
 
 const app = express();
 dotenv.config();
@@ -145,6 +146,16 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
     }
 
     const savedSale = await newSale.save();
+
+    const history = new History({
+      actionType: "sale",
+      action: "create",
+      actionDetails: {
+        ...savedSale
+      }
+    })
+
+    await history.save();
 
     await Client.findByIdAndUpdate(
       { _id: clientId },
