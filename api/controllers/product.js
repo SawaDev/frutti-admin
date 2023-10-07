@@ -1,6 +1,9 @@
 import Sale from "../models/Sale.js";
 import Product from "../models/Product.js";
 import { createError } from "../utils/error.js";
+import Expense from "../models/Expense.js";
+import Transaction from "../models/Transaction.js";
+import mongoose from "mongoose";
 
 export const createProduct = async (req, res, next) => {
   try {
@@ -101,7 +104,6 @@ export const getStats = async (req, res, next) => {
         }
       }
     ]);
-    const monthlyEarnings = salesData.length ? salesData[0].monthlyEarnings : 0;
 
     // Calculate monthly sale
     const sales = await Sale.aggregate([
@@ -148,22 +150,76 @@ export const getStats = async (req, res, next) => {
           }
         }
       }
-      
     ]);
+
+    const expensesMonth = await Expense.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          expensesCost: {
+            $sum: "$cost"
+          }
+        }
+      }
+    ]);
+
+    const expensesAll = await Expense.aggregate([
+      {
+        $group: {
+          _id: null,
+          expensesCost: {
+            $sum: "$cost"
+          }
+        }
+      }
+    ]);
+
+    const paymentsToCard = await Transaction.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              type: "credit"
+            },
+            {
+              cardId: new mongoose.Types.ObjectId(process.env.CARD_ID)
+            },
+            { createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          monthlyPayments: {
+            $sum: "$amount",
+          }
+        }
+      }
+    ])
+
+    const monthlyEarnings = (salesData.length ? salesData[0].monthlyEarnings : 0) + (paymentsToCard.length ? paymentsToCard[0].monthlyPayments : 0);
     const monthlySale = sales.length ? sales[0].monthlySale : 0;
-    const monthlyProfit = sales.length ? sales[0].monthlyProfit : 0;
+    const monthlyProfit = (sales.length ? sales[0].monthlyProfit : 0) - (expensesMonth.length ? expensesMonth[0].expensesCost : 0);
 
     const warehouseInfo = {
       productsCount,
       overallCost,
       monthlyEarnings,
       monthlySale,
-      monthlyProfit
+      monthlyProfit,
+      monthlyExpensesCost: expensesMonth.length ? expensesMonth[0].expensesCost : 0,
+      allExpensesCost: expensesAll.length ? expensesAll[0].expensesCost : 0,
+      monthlyPayments: paymentsToCard.length ? paymentsToCard[0].monthlyPayments : 0,
     };
 
     res.status(200).json(warehouseInfo);
   } catch (err) {
     next(err);
   }
-
 }

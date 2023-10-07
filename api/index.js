@@ -11,11 +11,13 @@ import clientsRoute from "./routes/clients.js"
 import expensesRoute from "./routes/expenses.js"
 import transactionsRoute from "./routes/transactions.js"
 import cardsRoute from "./routes/cards.js"
+import permissionsRoute from "./routes/permissions.js"
 import TelegramBot from "node-telegram-bot-api";
 import Client from "./models/Client.js";
 import Product from "./models/Product.js";
 import Sale from "./models/Sale.js";
 import { verifyToken } from "./utils/verifyToken.js";
+import axios from "axios";
 
 const app = express();
 dotenv.config();
@@ -45,6 +47,7 @@ app.use("/api/clients", clientsRoute);
 app.use("/api/expenses", expensesRoute);
 app.use("/api/transactions", transactionsRoute);
 app.use("/api/cards", cardsRoute);
+app.use("/api/permissions", permissionsRoute);
 
 const port = process.env.port || 8801;
 
@@ -60,7 +63,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+// const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
 // bot.onText(/\/start/, async (msg) => {
 //   const chatId = msg.chat.id;
@@ -129,6 +132,7 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
     const newSale = new Sale({
       clientId: new mongoose.Types.ObjectId(clientId),
       products: productsToSell,
+      amount: totalPrice,
       payment: req.body.payment,
       discount: req.body.discount
     });
@@ -142,7 +146,7 @@ app.post('/api/sales', verifyToken, async (req, res, next) => {
 
     const savedSale = await newSale.save();
 
-    const updatedClient = await Client.findByIdAndUpdate(
+    await Client.findByIdAndUpdate(
       { _id: clientId },
       {
         $push: { sales: savedSale._id },
@@ -265,4 +269,4 @@ app.listen(port, () => {
   console.log("Connected to port 8801");
 });
 
-export { app, bot };
+export { app };

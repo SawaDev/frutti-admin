@@ -36,10 +36,17 @@ const ProductSalesSchema = new mongoose.Schema(
       type: String,
       default: 'Kutilmoqda'
     },
+    amount: {
+      type: Number,
+    },
     discount: {
       type: Boolean,
       default: false,
     },
+    discountPercent: {
+      type: Number,
+      default: 0
+    }
   },
   { timestamps: true }
 );
