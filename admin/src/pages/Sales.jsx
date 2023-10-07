@@ -5,16 +5,18 @@ import { Link, useLocation } from 'react-router-dom'
 import { publicRequest, userRequest } from '../utils/requestMethods'
 import ReactLoading from "react-loading"
 import Navbar from '../components/Navbar'
-import { useEffect } from 'react'
+import useDateStore from '../zustand/dateStore'
 
 const Sales = () => {
   const location = useLocation()
   const path = location.pathname.split('/')[1]
 
-  const [date, setDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const { startDateStore, endDateStore, useStore } = useDateStore()
+
   const [clientId, setClientId] = useState(null)
   const [filter, setFilter] = useState('grouped');
+  const [date, setDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   const [salesQuery, salesGrouped, clientsQuery] = useQueries({
     queries: [
@@ -165,8 +167,8 @@ const Sales = () => {
                             <p className=''>To'lov: <span>{parseInt(s?.payment).toLocaleString("fr-fr")}</span></p>
                             <p className=''>Summa: <span>{parseInt(s?.summa).toLocaleString("fr-fr")}</span></p>
                             <p className=''>Soni: <span>{parseInt(s?.sumSoni).toLocaleString("fr-fr")}</span></p>
-                            <p>Hisob (keyin): <span className={s?.cashAfter < 0 ? 'text-red-500' : 'text-green-500'}>{parseInt(s?.cashAfter).toLocaleString("fr-fr")}</span></p>
-                            <p>Hisob (oldin): <span className={s?.cashBefore < 0 ? 'text-red-500' : 'text-green-500'}>{parseInt(s?.cashBefore).toLocaleString("fr-fr")}</span></p>
+                            <p>Astatka: <span className={s?.cashAfter < 0 ? 'text-green-500' : 'text-red-500'}>{parseInt(s?.cashAfter < 0 ? s?.cashAfter.toString().split('-')[1] : -s?.cashAfter).toLocaleString("fr-fr")}</span></p>
+                            {/* <p>Hisob (oldin): <span className={s?.cashBefore < 0 ? 'text-red-500' : 'text-green-500'}>{parseInt(s?.cashBefore).toLocaleString("fr-fr")}</span></p> */}
                           </div>
                           <Table
                             dataSource={s?.products?.sort((a, b) => {

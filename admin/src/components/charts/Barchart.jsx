@@ -1,9 +1,12 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ReactLoading from "react-loading"
 
 export default function Barchart({ data, isLoading }) {
 
   if (isLoading) {
-    return "Loading Sales ...";
+    return (<div className='text-purple-500 h-screen w-full grid place-items-center'>
+      <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+    </div>)
   }
 
   if (data.length === 0) {

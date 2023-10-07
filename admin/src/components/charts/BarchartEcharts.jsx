@@ -42,20 +42,7 @@ const EChartsDynamic = ({ title, xAxisData, yAxisData, legendData, seriesData })
       },
       series: seriesData.map((series, index) => ({
         name: legendData[index],
-        type: 'bar',
-        // label: {
-        //   show: true,
-        //   position: 'insideBottom',
-        //   distance: 10,
-        //   align: 'left',
-        //   verticalAlign: 'middle',
-        //   rotate: 90,
-        //   formatter: '{c}  {name|{a}}',
-        //   fontSize: 16,
-        //   rich: {
-        //     name: {}
-        //   }
-        // },
+        type: 'line',
         emphasis: {
           focus: 'series'
         },

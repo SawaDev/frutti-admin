@@ -9,8 +9,10 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { useClickAway } from 'react-use';
 
 import { Link } from "react-router-dom";
+import usePermissionsStore from "../zustand/permissions";
 
 const Sidebar = ({ setToggleMenu, toggleMenu }) => {
+  const { permissions } = usePermissionsStore()
 
   const handleMenu = () => {
     setToggleMenu(!toggleMenu);
@@ -52,14 +54,16 @@ const Sidebar = ({ setToggleMenu, toggleMenu }) => {
                   <span className="text-xl text-purple-500">Asosiy oyna</span>
                 </li>
               </Link>
-              <Link to="/newsale" onClick={handleMenu}>
-                <li className={linkClass}>
-                  <div>
-                    <AttachMoneyIcon className="text-xl text-purple-500" />
-                  </div>
-                  <span className="text-xl text-purple-500">Yangi Sotuv</span>
-                </li>
-              </Link>
+              {permissions.includes("can_create_sale") && (
+                <Link to="/newsale" onClick={handleMenu}>
+                  <li className={linkClass}>
+                    <div>
+                      <AttachMoneyIcon className="text-xl text-purple-500" />
+                    </div>
+                    <span className="text-xl text-purple-500">Yangi Sotuv</span>
+                  </li>
+                </Link>
+              )}
               <Link to="/newCollection" onClick={handleMenu}>
                 <li className={linkClass}>
                   <div>

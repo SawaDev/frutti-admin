@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate, HashRouter } from "react-router-dom";
+import ReactLoading from "react-loading"
+import { useQuery } from "@tanstack/react-query";
 
 import './App.css'
 import Home from './pages/Home';

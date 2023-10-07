@@ -71,8 +71,11 @@ const NewSale = () => {
     ],
   });
 
-  if (clientsQuery.isLoading) return 'Loading Clients...';
-  if (productsQuery.isLoading) return 'Loading Products...';
+  if (clientsQuery.isLoading || productsQuery.isLoading) return (
+    <div className='text-purple-500 h-screen w-full grid place-items-center'>
+      <ReactLoading type="spinningBubbles" color="rgb(168 85 247)" />
+    </div>
+  )
 
   if (clientsQuery.error)
     return 'An error has occurred: ' + clientsQuery.error.message;
@@ -131,7 +134,6 @@ const NewSale = () => {
         status: "Kutilmoqda"
       };
 
-      console.log(sale)
 
       if (!clientId) {
         alert("Xaridorni kiriting!");
