@@ -72,6 +72,8 @@ export const getSales = async (req, res, next) => {
           products: 1,
           createdAtDate: 1,
           createdAt: 1,
+          discountPercent: 1,
+          couponId: 1,
         }
       },
       {
@@ -84,6 +86,32 @@ export const getSales = async (req, res, next) => {
       },
       {
         $unwind: "$client"
+      },
+      {
+        $lookup: {
+          from: "coupons",
+          localField: "couponId",
+          foreignField: "_id",
+          as: "coupon"
+        }
+      },
+      {
+        $unwind: {
+          path: "$coupon",
+          preserveNullAndEmptyArrays: true // Preserve documents without a coupon
+        }
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: [
+              "$$ROOT", // Preserve all original fields
+              {
+                coupon: "$coupon" // Include the coupon field in the output
+              }
+            ]
+          }
+        }
       },
       {
         $lookup: {
@@ -104,6 +132,8 @@ export const getSales = async (req, res, next) => {
           payment: 1,
           status: 1,
           client: 1,
+          coupon: 1,
+          discountPercent: 1,
         }
       },
       {
@@ -113,14 +143,39 @@ export const getSales = async (req, res, next) => {
         $addFields: {
           "products.ketdi": "$ketdi",
           "products.priceOfProduct": "$priceOfProduct",
+          "products.discount": "$discountPercent",
         }
       },
       {
         $addFields: {
-          summa: {
-            $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+          summaWithDiscount: {
+            $cond: [
+              { $eq: ["$products.discount", null] },
+              {
+                $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+              },
+              {
+                $subtract: [
+                  {
+                    $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+                  },
+                  {
+                    $multiply: [
+                      "$products.ketdi",
+                      "$products.priceOfProduct",
+                      {
+                        $divide: ["$products.discount", 100]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           },
-        }
+          summaWithoutDiscount: {
+            $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+          }
+        },
       },
       {
         $group: {
@@ -144,7 +199,10 @@ export const getSales = async (req, res, next) => {
             $first: "$client"
           },
           summa: {
-            $sum: "$summa"
+            $sum: "$summaWithoutDiscount"
+          },
+          summaWithDiscount: {
+            $sum: "$summaWithDiscount"
           },
           sumSoni: {
             $sum: "$products.ketdi"
@@ -189,6 +247,17 @@ export const getSales = async (req, res, next) => {
         $unwind: "$products"
       },
       {
+        $lookup: {
+          from: "coupons",
+          localField: "couponId",
+          foreignField: "_id",
+          as: "coupon"
+        }
+      },
+      {
+        $unwind: "$coupon"
+      },
+      {
         $group: {
           _id: {
             createdAtDate: "$createdAtDate",
@@ -202,6 +271,24 @@ export const getSales = async (req, res, next) => {
             $sum: {
               $multiply: ['$products.ketdi', '$products.priceOfProduct']
             }
+          },
+          summaWithDiscount: {
+            $sum: {
+              $subtract: [
+                {
+                  $multiply: ["$products.ketdi", "$products.priceOfProduct"]
+                },
+                {
+                  $multiply: [
+                    "$products.ketdi",
+                    "$products.priceOfProduct",
+                    {
+                      $divide: ["$coupon.discount", 100]
+                    }
+                  ]
+                }
+              ]
+            },
           },
           payment: {
             $first: "$payment"
@@ -231,6 +318,9 @@ export const getSales = async (req, res, next) => {
           overallSumma: {
             $sum: "$summa"
           },
+          summaWithDiscount: {
+            $sum: "$summaWithDiscount"
+          },
           products: {
             $push: "$$ROOT"
           },
@@ -257,6 +347,9 @@ export const getSales = async (req, res, next) => {
           summa: {
             $sum: "$overallSumma"
           },
+          summaWithDiscount: {
+            $sum: "$summaWithDiscount"
+          },
           clients: {
             $push: "$$ROOT"
           }
@@ -281,13 +374,14 @@ export const getSales = async (req, res, next) => {
           const client = sale.client;
           const payment = sale.payment;
           const summa = sale.summa;
+          const summaWithDiscount = sale.summaWithDiscount;
 
           if (!clientSalesSum.hasOwnProperty(client._id)) {
             clientSalesSum[client._id] = client.cash;
           }
 
           const cashAfter = clientSalesSum[client._id]
-          clientSalesSum[client._id] = cashAfter - payment + summa;
+          clientSalesSum[client._id] = cashAfter - payment + (summaWithDiscount ?? summa);
           const cashBefore = clientSalesSum[client._id]
 
           sale.cashAfter = cashAfter;

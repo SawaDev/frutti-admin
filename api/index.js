@@ -12,12 +12,12 @@ import expensesRoute from "./routes/expenses.js"
 import transactionsRoute from "./routes/transactions.js"
 import cardsRoute from "./routes/cards.js"
 import permissionsRoute from "./routes/permissions.js"
+import couponsRoute from "./routes/coupons.js"
 import TelegramBot from "node-telegram-bot-api";
 import Client from "./models/Client.js";
 import Product from "./models/Product.js";
 import Sale from "./models/Sale.js";
 import { verifyToken } from "./utils/verifyToken.js";
-import axios from "axios";
 import History from "./models/History.js";
 
 const app = express();
@@ -49,6 +49,7 @@ app.use("/api/expenses", expensesRoute);
 app.use("/api/transactions", transactionsRoute);
 app.use("/api/cards", cardsRoute);
 app.use("/api/permissions", permissionsRoute);
+app.use("/api/coupons", couponsRoute);
 
 const port = process.env.port || 8801;
 

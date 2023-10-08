@@ -46,6 +46,10 @@ const ProductSalesSchema = new mongoose.Schema(
     discountPercent: {
       type: Number,
       default: 0
+    },
+    couponId: {
+      type: SchemaTypes.ObjectId,
+      ref: 'Coupon',
     }
   },
   { timestamps: true }
