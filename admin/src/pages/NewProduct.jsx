@@ -110,6 +110,12 @@ const NewProduct = () => {
                 style={{ display: "none" }}
               />
             </div>
+            <div className="flex flex-col w-2/5">
+              <label className='text-lg font-medium'>Tan narxi</label>
+              <input onChange={handleChange} id="tanNarxi" className='border-b-4 p-2 border-gray-300 rounded-md text-lg mt-1 outline-none' placeholder='Price' type="number" />
+            </div>
+          </div>
+          <div className="flex justify-around mt-5">
             <div className='px-4 py-2 bg-purple-100 font-semibold text-purple-600 rounded-xl' onClick={handleClick}>
               <button>Qo'shish</button>
             </div>

@@ -1,6 +1,7 @@
-import { useQueries } from '@tanstack/react-query';
+import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { Radio, Table, Tabs } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar'
 import dateFormat from '../utils/functions';
 import { publicRequest } from '../utils/requestMethods';
@@ -9,7 +10,9 @@ const Transactions = () => {
   const [filter, setFilter] = useState("credit")
   const [cardId, setCardId] = useState('64f7682d5e4645990d0393f9')
   const [type, setType] = useState('credit')
-  const [info, setInfo] = useState({})
+  const [info, setInfo] = useState({cardId, type})
+
+  const navigate = useNavigate()
 
   const [transactions, cards, clients] = useQueries({
     queries: [
@@ -106,7 +109,7 @@ const Transactions = () => {
       const numericValue = e.target.value.replace(/\D/g, '');
       setInfo({
         ...info,
-        payment: Number(numericValue)
+        amount: Number(numericValue)
       })
     } else if (e.target.name === "discount") {
       setType(e.target.value)
@@ -121,6 +124,30 @@ const Transactions = () => {
       })
     }
   }
+
+  const queryClient = useQueryClient();
+  const createPostMutation = useMutation({
+    mutationFn: (data) => {
+      return publicRequest.post("/transactions", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["transactions"])
+    },
+    onError: (error) => {
+      alert(error?.response?.data.message)
+    }
+  })
+
+  const handleClick = async (e) => {
+    e.preventDefault();
+
+    try {
+      createPostMutation.mutate(info);
+      navigate("/");
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   if (transactions.isLoading || clients.isLoading) return "Loading transactions or cliets..."
   if (cards.isLoading) return "Loading cards..."
@@ -213,7 +240,7 @@ const Transactions = () => {
           }
           <button
             className='bg-purple-100 text-purple-600 py-4 px-6 mb-10 rounded-xl duration-100 ease-in hover:bg-purple-100 hover:shadow-md'
-            onClick={() => console.log(info)}
+            onClick={handleClick}
           // disabled={}
           >
             Saqlash

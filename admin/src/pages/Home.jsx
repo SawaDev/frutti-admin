@@ -73,9 +73,9 @@ const Home = () => {
                 />
                 <Widget
                   isLink={true}
-                  stats={data?.monthlyEarnings}
+                  stats={data?.monthlyEarnings} 
                   link="/sales"
-                  title="Oylik Savdo"
+                  title="To'lovlar" // sum of all payments 
                   isMoney={true}
                   background={"bg-purple-100"}
                   icon={<AccountBalanceWalletOutlinedIcon />}
@@ -83,7 +83,7 @@ const Home = () => {
                 />
                 <Widget
                   stats={data?.monthlyProfit}
-                  title="Oylik To'lov"
+                  title="Umumiy foyda"  // (narxi * soni - tan narxi * soni) - hamma harajat (umumiy foyda, oylikmas) +- client astatkasi
                   isMoney={true}
                   background={"bg-green-200"}
                   icon={<PersonOutlinedIcon />}
@@ -92,7 +92,7 @@ const Home = () => {
                 {permissions.includes("can_see_stats") && (
                   <Widget
                     stats={data?.monthlySale}
-                    title="Oylik Pul O'tkazmalar"
+                    title="Umumiy tushim" // narxi * soni (umumiy tushim)
                     isMoney={true}
                     background={"bg-green-200"}
                     icon={<PersonOutlinedIcon />}
@@ -110,7 +110,7 @@ const Home = () => {
                 {permissions.includes("can_see_stats") && (
                   <Widget
                     stats={data?.monthlyExpensesCost}
-                    title="Oylik Harajatlar"
+                    title="Harajatlar" // sum of all expenses
                     isMoney={true}
                     background={"bg-yellow-100"}
                     icon={<AccountBalanceWalletOutlinedIcon />}
